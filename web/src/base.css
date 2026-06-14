@@ -71,3 +71,37 @@ input::placeholder { color: var(--muted); }
 /* Touch-Panel-Bits, die TouchDeck nutzt (liegen außerhalb deck.css) */
 .t-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 20px; }
 .t-col-h { font-size: 14px; font-weight: 700; margin: 0 0 8px; color: var(--muted); }
+
+/* ===== Editor-Kopf + Tabs (Deck | Theme) ===== */
+.rd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 4px 0 16px; }
+.rd-head .rd-h { margin: 0; }
+.rd-tabs { display: flex; gap: 6px; }
+.rd-tab { background: var(--bg3); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 5px 16px; cursor: pointer; font: inherit; }
+.rd-tab:hover { color: var(--fg); }
+.rd-tab.on { color: var(--fg); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* ===== Theme-Tab ===== */
+.th h2.th-sec { margin: 20px 0 8px; font-size: 16px; }
+.th-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-width: 820px; }
+.th-preset { text-align: left; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; color: var(--fg); font: inherit; }
+.th-preset:hover { border-color: var(--accent2); }
+.th-preset.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.th-preset .th-name { font-weight: 600; font-size: 13px; margin-bottom: 8px; display: block; }
+.th-sw { display: flex; gap: 4px; }
+.th-sw i { width: 22px; height: 16px; border-radius: 4px; display: inline-block; border: 1px solid rgba(127,127,127,.25); }
+.th-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 18px; max-width: 780px; }
+.th-row { display: flex; align-items: center; gap: 8px; }
+.th-row label { flex: 1; color: var(--muted); font-size: 13px; }
+.th-row input[type=color] { width: 36px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); cursor: pointer; flex: none; }
+.th-row input[type=text] { width: 92px; flex: none; font-family: ui-monospace, monospace; font-size: 12px; }
+.th-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.th-mythemes { display: flex; flex-direction: column; gap: 6px; max-width: 520px; margin-top: 10px; }
+.th-mt { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.th-mt .th-mt-name { flex: 1; }
+.th-warn { color: var(--warn); font-size: 13px; margin: 8px 0; }
+.th-prev { margin-top: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; max-width: 360px; }
+.th-prev-row { display: flex; gap: 8px; }
+.th-prev-tile { width: 64px; height: 64px; border-radius: 10px; background: var(--bg3); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--fg); font-size: 11px; }
+.th-prev-tile.acc { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.th-prev-tile .th-pi { font-size: 20px; line-height: 1; }
+.th-prev-cap { font-size: 12px; margin: 8px 0 0; }
