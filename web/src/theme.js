@@ -1,6 +1,9 @@
-// RigzDeck Theme-Engine — CSS-Variablen-Themes, pro Gerät gespeichert (localStorage).
-// Reines Frontend: deck.css (deckcore) ist komplett var-getrieben → wir setzen hier die
-// :root-Variablen. Genutzt von main.jsx (Editor) UND touch-main.jsx (Panel) + dem Theme-Tab.
+// RigzDeck Theme-Engine — CSS-Variablen-Themes, Synced + Override.
+// Ein GETEILTES Theme liegt auf dem Server (/api/theme). Jedes Gerät kann ein LOKALES
+// Override setzen (localStorage); Override gewinnt, sonst folgt das Gerät dem Server-Theme.
+// Der Editor ist Master (schreibt aufs Server-Theme); das Touch-Panel kann pro Gerät
+// abweichen (z.B. OLED nur fürs Tablet). deck.css (deckcore) ist var-getrieben → wir
+// setzen nur die :root-Variablen.
 
 // Die personalisierbaren Variablen (Reihenfolge = Anzeige im Editor).
 export const CORE_VARS = [
@@ -46,49 +49,72 @@ export const PRESETS = {
 }
 export const DEFAULT_ID = 'slate'
 
-const KEY = 'rd.theme'           // {activeId, customs:{name:vars}, adhoc:vars|null}
+const KEY = 'rd.theme'           // { override: {activeId, adhoc}|null, customs:{name:vars} }
 const VARS_KEY = 'rd.theme.vars' // flacher {var:val}-Snapshot der aktiven Vars (Pre-Paint-Script)
 
-export function loadState() {
+// — Lokaler Gerätezustand (Override + eigene Themes) —
+export function loadLocal() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || '{}')
-    return {
-      activeId: s.activeId || DEFAULT_ID,
-      customs: s.customs || {},
-      adhoc: s.adhoc || null,
-    }
+    return { override: s.override || null, customs: s.customs || {} }
   } catch (e) {
-    return { activeId: DEFAULT_ID, customs: {}, adhoc: null }
+    return { override: null, customs: {} }
   }
 }
-
-export function saveState(state) {
-  try { localStorage.setItem(KEY, JSON.stringify(state)) } catch (e) { /* Speicher voll/blockiert */ }
+export function saveLocal(local) {
+  try { localStorage.setItem(KEY, JSON.stringify(local)) } catch (e) { /* Speicher voll/blockiert */ }
 }
 
-// Aktiven Zustand → konkrete Variablen auflösen (immer auf Slate-Defaults aufsetzen).
-export function resolveVars(state) {
+// Auswahl {activeId, adhoc} (+ eigene Themes) → konkrete Variablen (immer auf Slate aufsetzen).
+export function resolveVars(sel, customs) {
   const base = PRESETS[DEFAULT_ID].vars
-  const id = state.activeId
-  if (id === '__adhoc' && state.adhoc) return { ...base, ...state.adhoc }
+  if (!sel) return { ...base }
+  const id = sel.activeId
+  if (id === '__adhoc' && sel.adhoc) return { ...base, ...sel.adhoc }
   if (id && id.indexOf('__custom:') === 0) {
-    const name = id.slice('__custom:'.length)
-    if (state.customs && state.customs[name]) return { ...base, ...state.customs[name] }
+    const nm = id.slice('__custom:'.length)
+    if (customs && customs[nm]) return { ...base, ...customs[nm] }
   }
   if (PRESETS[id]) return { ...base, ...PRESETS[id].vars }
   return { ...base }
 }
 
-// Variablen auf :root anwenden + Snapshot für das Pre-Paint-Script schreiben.
+// Variablen auf :root anwenden + Snapshot fürs Pre-Paint-Script schreiben.
 export function applyVars(vars) {
   const root = document.documentElement
   for (const k in vars) root.style.setProperty(k, vars[k])
   try { localStorage.setItem(VARS_KEY, JSON.stringify(vars)) } catch (e) { /* egal */ }
 }
 
-// Beim App-Start aufrufen (main.jsx + touch-main.jsx): aktives Theme sofort anwenden.
-export function initTheme() {
-  applyVars(resolveVars(loadState()))
+// — Server (geteiltes Theme) —
+export async function fetchServerTheme() {
+  try {
+    const r = await fetch('/api/theme')
+    if (!r.ok) return null
+    const d = await r.json()
+    return d && d.vars ? d : null
+  } catch (e) { return null }
+}
+export async function pushServerTheme(payload) {
+  try {
+    await fetch('/api/theme', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    })
+  } catch (e) { /* offline / nicht erreichbar — lokal wirkt es trotzdem */ }
+}
+let _pushTimer = null
+export function pushServerThemeDebounced(payload, ms = 500) {
+  if (_pushTimer) clearTimeout(_pushTimer)
+  _pushTimer = setTimeout(() => { _pushTimer = null; pushServerTheme(payload) }, ms)
+}
+
+// Beim App-Start (main.jsx + touch-main.jsx): lokales Override gewinnt, sonst Server-Theme,
+// sonst Default. Async — das Pre-Paint-Script hat den letzten Snapshot schon angewandt (kein Flackern).
+export async function initTheme() {
+  const local = loadLocal()
+  if (local.override) { applyVars(resolveVars(local.override, local.customs)); return }
+  const srv = await fetchServerTheme()
+  applyVars(srv && srv.vars ? { ...PRESETS[DEFAULT_ID].vars, ...srv.vars } : { ...PRESETS[DEFAULT_ID].vars })
 }
 
 // WCAG-Kontrastverhältnis zweier #rrggbb-Farben (für den Lesbarkeits-Guard). null = ungültig.

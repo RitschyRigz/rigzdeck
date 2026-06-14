@@ -1,33 +1,50 @@
-import { useState } from 'preact/hooks'
+import { useState, useEffect } from 'preact/hooks'
 import {
   CORE_VARS, SEMANTIC_VARS, PRESETS, DEFAULT_ID,
-  loadState, saveState, resolveVars, applyVars, contrastRatio,
+  loadLocal, saveLocal, resolveVars, applyVars, contrastRatio,
+  fetchServerTheme, pushServerThemeDebounced,
 } from './theme.js'
 
 // 🎨 Theme-Tab — RigzDeck personalisieren. Presets + Color-Picker pro Farbe + eigene
-// Themes (speichern/teilen). Wirkt SOFORT (setzt :root-Vars live) im Editor + Panel,
-// pro Gerät gespeichert. deckcore bleibt unberührt — alles nur Frontend-Präsentation.
+// Themes (speichern/teilen). Der Editor ist MASTER: Änderungen wirken sofort live UND
+// werden als GETEILTES Theme auf den Server geschrieben → alle Geräte ohne eigenes
+// Override folgen automatisch (z.B. das Tablet-Panel). deckcore bleibt unberührt.
 export function Theme() {
-  const init = loadState()
-  const [st, setSt] = useState(init)
-  const [vars, setVars] = useState(() => resolveVars(init))
+  const initCustoms = loadLocal().customs
+  const [st, setSt] = useState({ activeId: DEFAULT_ID, adhoc: null, customs: initCustoms })
+  const [vars, setVars] = useState(() => resolveVars({ activeId: DEFAULT_ID, adhoc: null }, initCustoms))
   const [adv, setAdv] = useState(false)
   const [name, setName] = useState('')
   const [msg, setMsg] = useState('')
 
+  // Beim Öffnen das aktuell geteilte (Server-)Theme laden, damit der Editor den echten Stand zeigt.
+  useEffect(() => {
+    let alive = true
+    fetchServerTheme().then((srv) => {
+      if (!alive || !srv || !srv.vars) return
+      const nv = { ...PRESETS[DEFAULT_ID].vars, ...srv.vars }
+      setSt((s) => ({ ...s, activeId: srv.activeId || '__adhoc', adhoc: srv.adhoc || null }))
+      setVars(nv); applyVars(nv)
+    })
+    return () => { alive = false }
+  }, [])
+
+  // Wirkt sofort (live), merkt eigene Themes lokal, pusht das geteilte Theme (debounced) auf den Server.
   function commit(nextSt, nextVars) {
     setSt(nextSt); setVars(nextVars)
-    applyVars(nextVars); saveState(nextSt)
+    applyVars(nextVars)
+    saveLocal({ override: loadLocal().override, customs: nextSt.customs })
+    pushServerThemeDebounced({ activeId: nextSt.activeId, adhoc: nextSt.adhoc, vars: nextVars })
   }
   function applyPreset(id) {
-    setMsg(''); commit({ ...st, activeId: id }, { ...PRESETS[DEFAULT_ID].vars, ...PRESETS[id].vars })
+    setMsg(''); commit({ ...st, activeId: id, adhoc: null }, { ...PRESETS[DEFAULT_ID].vars, ...PRESETS[id].vars })
   }
   function editVar(key, val) {
     const nv = { ...vars, [key]: val }
     commit({ ...st, activeId: '__adhoc', adhoc: { ...nv } }, nv)
   }
   function applyCustom(nm) {
-    setMsg(''); commit({ ...st, activeId: '__custom:' + nm }, { ...PRESETS[DEFAULT_ID].vars, ...st.customs[nm] })
+    setMsg(''); commit({ ...st, activeId: '__custom:' + nm, adhoc: null }, { ...PRESETS[DEFAULT_ID].vars, ...st.customs[nm] })
   }
   function saveCustom() {
     const nm = name.trim()
@@ -41,7 +58,8 @@ export function Theme() {
     if (st.activeId === '__custom:' + nm) {
       commit({ ...st, customs, activeId: DEFAULT_ID }, { ...PRESETS[DEFAULT_ID].vars })
     } else {
-      const nextSt = { ...st, customs }; setSt(nextSt); saveState(nextSt)
+      const nextSt = { ...st, customs }; setSt(nextSt)
+      saveLocal({ override: loadLocal().override, customs })
     }
   }
   function reset() { applyPreset(DEFAULT_ID) }
@@ -96,8 +114,8 @@ export function Theme() {
 
   return (
     <div class="th">
-      <p class="hint">Personalisiere RigzDeck — wirkt sofort im Editor und auf dem Touch-Panel,
-        pro Gerät gespeichert.</p>
+      <p class="hint">Personalisiere RigzDeck — wirkt sofort und gilt als <b>geteiltes Theme für alle Geräte</b>.
+        Ein Tablet kann im Panel (🎨) lokal abweichen, z.B. OLED-Schwarz.</p>
 
       <h2 class="th-sec">Presets</h2>
       <div class="th-presets">

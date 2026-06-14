@@ -125,6 +125,30 @@ def create_app() -> FastAPI:
         return {"ok": True, "app": "RigzDeck", "version": "0.1.0",
                 "buttons": len(svc.list_buttons()), "decks": len(svc.decks())}
 
+    # Geteiltes Theme (Synced): der Editor schreibt es, Geräte ohne lokales Override folgen ihm.
+    _theme_file = _RUNTIME / "theme.json"
+
+    @app.get("/api/theme")
+    def get_theme():
+        try:
+            if _theme_file.exists():
+                return json.loads(_theme_file.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
+        return {}
+
+    @app.post("/api/theme")
+    async def set_theme(request: Request):
+        try:
+            data = await request.json()
+        except Exception:  # noqa: BLE001
+            data = {}
+        try:
+            _theme_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+        return {"ok": True}
+
     # Uploaded icons (served at /static/sd_icons/user/…)
     app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
     # Built frontend assets (/assets/…) — only if the frontend has been built.
