@@ -135,6 +135,12 @@ def create_app() -> FastAPI:
             return FileResponse(str(f))
         return PlainTextResponse("RigzDeck-Panel-Build fehlt (web/: npm run build).", status_code=503)
 
+    # Übrige gebaute Frontend-Dateien aus dem dist-Root (Favicon, Brand-Assets via web/public/, …).
+    # ZULETZT gemountet → die expliziten Routen (/, /panel, /api, /assets, /static) matchen zuerst;
+    # dieser Mount fängt nur den Rest (z.B. /monogram.ico, /rigzdeck-underlined.png).
+    if _WEB_DIST.exists():
+        app.mount("/", StaticFiles(directory=str(_WEB_DIST)), name="dist")
+
     return app
 
 

@@ -1,4 +1,6 @@
-# RigzDeck
+<p align="center">
+  <img src="web/public/rigzdeck-lockup-underlined.png" alt="RigzDeck" width="540">
+</p>
 
 **Turn any tablet into a fully configurable stream deck.** A lightweight, standalone
 stream-deck app — launch programs, switch DisplayFusion monitor profiles, control media,

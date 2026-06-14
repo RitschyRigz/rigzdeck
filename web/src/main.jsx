@@ -13,7 +13,10 @@ function App() {
   return (
     <div class="rd-editor">
       <div class="rd-head">
-        <h1 class="rd-h">🎛 RigzDeck <span class="muted" style="font-size:13px;font-weight:400">— {tab === 'deck' ? 'Deck-Editor' : 'Theme'}</span></h1>
+        <h1 class="rd-brand">
+          <img class="rd-logo" src="/monogram-256.png" alt="" aria-hidden="true" />
+          <img class="rd-wordmark" src="/rigzdeck-underlined.png" alt="RigzDeck" />
+        </h1>
         <div class="rd-tabs">
           <button class={'rd-tab' + (tab === 'deck' ? ' on' : '')} onClick={() => setTab('deck')}>Deck</button>
           <button class={'rd-tab' + (tab === 'theme' ? ' on' : '')} onClick={() => setTab('theme')}>Theme</button>

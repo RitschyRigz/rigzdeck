@@ -75,6 +75,9 @@ input::placeholder { color: var(--muted); }
 /* ===== Editor-Kopf + Tabs (Deck | Theme) ===== */
 .rd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 4px 0 16px; }
 .rd-head .rd-h { margin: 0; }
+.rd-brand { display: flex; align-items: center; gap: 10px; margin: 0; line-height: 0; }
+.rd-logo { width: 36px; height: 36px; border-radius: 8px; display: block; flex: none; }
+.rd-wordmark { height: 30px; width: auto; display: block; }
 .rd-tabs { display: flex; gap: 6px; }
 .rd-tab { background: var(--bg3); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 5px 16px; cursor: pointer; font: inherit; }
 .rd-tab:hover { color: var(--fg); }
