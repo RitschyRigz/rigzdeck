@@ -35,7 +35,10 @@ class Advertiser:
         try:
             from zeroconf import ServiceInfo, Zeroconf
         except Exception:
-            return  # zeroconf nicht installiert -> App muss manuell konfiguriert werden
+            import traceback
+            print("[discovery] zeroconf-Import fehlgeschlagen:", flush=True)
+            traceback.print_exc()
+            return  # zeroconf fehlt -> App muss manuell konfiguriert werden
         try:
             ip = lan_ip()
             host = (socket.gethostname().split(".")[0] or "host").replace(" ", "-")
@@ -49,7 +52,11 @@ class Advertiser:
                 server=f"rigzdeck-{host}.local.",
             )
             self._zc.register_service(self._info)
+            print(f"[discovery] mDNS angemeldet: _rigzdeck._tcp @ {ip}:{self.port}", flush=True)
         except Exception:
+            import traceback
+            print("[discovery] mDNS-Anmeldung fehlgeschlagen:", flush=True)
+            traceback.print_exc()
             self.stop()
 
     def stop(self) -> None:

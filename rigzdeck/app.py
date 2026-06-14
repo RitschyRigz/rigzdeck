@@ -96,11 +96,14 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         await svc.start()
-        advertiser.start()          # mDNS: Android-App findet den Host ohne IP-Eingabe
+        # zeroconfs Sync-API NICHT im laufenden Event-Loop aufrufen (sonst EventLoopBlocked
+        # im Frozen-Build) -> Start/Stop in einem Worker-Thread (reiner Sync-Kontext).
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, advertiser.start)   # mDNS: App findet Host ohne IP
         try:
             yield
         finally:
-            advertiser.stop()
+            await loop.run_in_executor(None, advertiser.stop)
             await svc.stop()
 
     app = FastAPI(title="RigzDeck", version="0.1.0", lifespan=lifespan)
