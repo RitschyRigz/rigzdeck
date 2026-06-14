@@ -6,9 +6,8 @@ fire hotkeys/macros, hit any HTTP endpoint, and more — all from a web panel on
 tablet(s) or the Elgato Stream Deck plugin. No heavy backend, no cloud.
 
 RigzDeck is a slim host around the shared **[deckcore](https://github.com/RitschyRigz/deckcore)**
-engine (included here as a submodule). The same engine powers the RitschyBot Cockpit — so the
-editor, the deck model, and the look are battle-tested; RigzDeck just drops the streaming-bot
-machinery.
+engine (included here as a git submodule) — a battle-tested deck editor, deck model, and
+renderer wrapped in a minimal FastAPI app.
 
 ## Features (v0.1.0)
 

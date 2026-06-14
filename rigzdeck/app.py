@@ -2,7 +2,7 @@
 
 Serves the deck API (via deckcore's shared route layer), a multiplexed SSE feed for the
 panels/editor, the built frontend (editor at ``/``, touch panel at ``/panel``), and uploaded
-icons. NO RitschyBot machinery — only the generic deck capabilities the core ships
+icons. No heavy backend — only the generic deck capabilities the core ships
 (launch / http / flags / displayfusion / media / hotkey + the matching monitors).
 """
 from __future__ import annotations

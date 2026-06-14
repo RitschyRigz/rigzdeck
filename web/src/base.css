@@ -1,6 +1,6 @@
 /* RigzDeck base.css — Theme + allgemeine UI-Utilities, auf die die Deck-Module bauen.
-   Palette + Utilities spiegeln das RitschyBot-Cockpit (gleicher Look wie der bewährte Deck-Tab).
-   Deck-spezifische Styles (.sd-* / .t-deck* / .t-key*) kommen aus deckcore/web/deck.css. */
+   Hier leben Farbpalette (:root) + UI-Utilities; Deck-spezifische Styles
+   (.sd-* / .t-deck* / .t-key*) kommen aus deckcore/web/deck.css. */
 
 :root {
   --bg: #15171c; --bg2: #1c1f26; --bg3: #232733; --line: #2e3340;
