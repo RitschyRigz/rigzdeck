@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node / Vite
+node_modules/
+web/dist/
+
+# Runtime / local state (per-install)
+rigzdeck/runtime/
+rigzdeck/static/
+*.log
+
+# Build / packaging
+build/
+dist/
+*.spec

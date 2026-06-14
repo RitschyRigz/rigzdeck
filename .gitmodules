@@ -1,0 +1,3 @@
+[submodule "deckcore"]
+	path = deckcore
+	url = https://github.com/RitschyRigz/deckcore.git
