@@ -6,85 +6,88 @@ import android.net.nsd.NsdServiceInfo
 import android.os.Handler
 import android.os.Looper
 
-/**
- * Findet den RigzDeck-Host im LAN per mDNS/NSD (`_rigzdeck._tcp.`). Beim ersten
- * aufgeloesten Treffer wird [onFound] mit Host-IP + Port aufgerufen. Kein IP-Eintippen noetig.
- */
-class Discovery(context: Context, private val onFound: (String, Int) -> Unit) {
+/** Ein Deck-Host — entdeckt per mDNS oder manuell hinzugefügt. */
+data class HostInfo(
+    val key: String,
+    val label: String,
+    val host: String,
+    val port: Int,
+    val path: String = "/panel",
+    val manual: Boolean = false,
+) {
+    fun url(): String = "http://$host:$port$path"
+}
 
-    private val nsd = context.applicationContext
-        .getSystemService(Context.NSD_SERVICE) as NsdManager
+/**
+ * Findet ALLE Deck-Hosts im LAN per mDNS (`_rigzdeck._tcp` — RigzDeck-Instanzen UND Cockpit).
+ * Ruft [onFound] pro aufgelöstem Host, [onLost] beim Verschwinden. Auflösung läuft seriell,
+ * da NSD nur eine gleichzeitige resolveService-Operation erlaubt.
+ */
+class Discovery(
+    context: Context,
+    private val onFound: (HostInfo) -> Unit,
+    private val onLost: (String) -> Unit,
+) {
+    private val nsd = context.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
     private val handler = Handler(Looper.getMainLooper())
     private var listener: NsdManager.DiscoveryListener? = null
+    private val pending = ArrayDeque<NsdServiceInfo>()
     private var resolving = false
-    private var done = false
-    private var timeout: Runnable? = null
 
-    companion object {
-        const val SERVICE_TYPE = "_rigzdeck._tcp."
-    }
+    companion object { const val TYPE = "_rigzdeck._tcp." }
 
-    fun start(timeoutMs: Long, onTimeout: () -> Unit) {
+    fun start() {
         val l = object : NsdManager.DiscoveryListener {
-            override fun onStartDiscoveryFailed(serviceType: String?, errorCode: Int) {}
-            override fun onStopDiscoveryFailed(serviceType: String?, errorCode: Int) {}
-            override fun onDiscoveryStarted(serviceType: String?) {}
-            override fun onDiscoveryStopped(serviceType: String?) {}
-            override fun onServiceLost(serviceInfo: NsdServiceInfo?) {}
-            override fun onServiceFound(serviceInfo: NsdServiceInfo?) {
-                if (serviceInfo == null || resolving || done) return
-                if (serviceInfo.serviceType?.contains("rigzdeck") != true) return
-                resolving = true
-                resolve(serviceInfo)
+            override fun onStartDiscoveryFailed(t: String?, e: Int) {}
+            override fun onStopDiscoveryFailed(t: String?, e: Int) {}
+            override fun onDiscoveryStarted(t: String?) {}
+            override fun onDiscoveryStopped(t: String?) {}
+            override fun onServiceFound(s: NsdServiceInfo) {
+                if (s.serviceType?.contains("rigzdeck") == true) {
+                    handler.post { pending.addLast(s); pump() }
+                }
+            }
+            override fun onServiceLost(s: NsdServiceInfo) {
+                val name = s.serviceName
+                if (name != null) handler.post { onLost(name) }
             }
         }
         listener = l
-        try {
-            nsd.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, l)
-        } catch (e: Exception) {
-            // ignorieren -> Timeout greift
-        }
-        timeout = Runnable {
-            if (!done) {
-                stop()
-                onTimeout()
-            }
-        }
-        handler.postDelayed(timeout!!, timeoutMs)
+        try { nsd.discoverServices(TYPE, NsdManager.PROTOCOL_DNS_SD, l) } catch (e: Exception) {}
     }
 
     @Suppress("DEPRECATION")
-    private fun resolve(info: NsdServiceInfo) {
-        try {
-            nsd.resolveService(info, object : NsdManager.ResolveListener {
-                override fun onResolveFailed(serviceInfo: NsdServiceInfo?, errorCode: Int) {
-                    resolving = false
+    private fun pump() {
+        if (resolving || pending.isEmpty()) return
+        resolving = true
+        val s = pending.removeFirst()
+        val rl = object : NsdManager.ResolveListener {
+            override fun onResolveFailed(si: NsdServiceInfo?, e: Int) {
+                handler.post { resolving = false; pump() }
+            }
+            override fun onServiceResolved(si: NsdServiceInfo) {
+                handler.post {
+                    val host = si.host?.hostAddress
+                    if (host != null) {
+                        val attrs = si.attributes ?: emptyMap<String, ByteArray>()
+                        fun attr(k: String): String =
+                            attrs[k]?.let { try { String(it) } catch (e: Exception) { "" } } ?: ""
+                        val path = attr("path").ifBlank { "/panel" }
+                        val name = si.serviceName ?: "$host:${si.port}"
+                        val label = attr("app").ifBlank { name }
+                        onFound(HostInfo(key = name, label = label, host = host, port = si.port, path = path))
+                    }
+                    resolving = false; pump()
                 }
-
-                override fun onServiceResolved(serviceInfo: NsdServiceInfo?) {
-                    if (done || serviceInfo == null) return
-                    val host = serviceInfo.host?.hostAddress ?: run { resolving = false; return }
-                    val port = serviceInfo.port
-                    done = true
-                    stop()
-                    onFound(host, port)
-                }
-            })
-        } catch (e: Exception) {
-            resolving = false
+            }
         }
+        try { nsd.resolveService(s, rl) } catch (e: Exception) { resolving = false; pump() }
     }
 
     fun stop() {
-        timeout?.let { handler.removeCallbacks(it) }
-        timeout = null
-        listener?.let {
-            try {
-                nsd.stopServiceDiscovery(it)
-            } catch (e: Exception) {
-                // schon gestoppt
-            }
-        }
+        listener?.let { try { nsd.stopServiceDiscovery(it) } catch (e: Exception) {} }
         listener = null
+        pending.clear()
+        resolving = false
     }
 }

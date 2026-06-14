@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">RigzDeck</string>
-    <string name="searching">Suche RigzDeck im Netzwerk…</string>
-    <string name="not_found">RigzDeck nicht gefunden.\nLäuft die RigzDeck-App am PC? Sonst unten die Adresse manuell eingeben.</string>
-    <string name="connect_failed">Verbindung fehlgeschlagen — prüfe, ob die RigzDeck-App am PC läuft.</string>
+    <string name="searching">Suche Deck-Hosts im Netzwerk…</string>
+    <string name="not_found">Kein Deck-Host gefunden.\nLäuft RigzDeck/Cockpit am PC? Sonst unten einen Host manuell hinzufügen.</string>
+    <string name="connect_failed">Verbindung fehlgeschlagen — prüfe, ob der Host am PC läuft.</string>
     <string name="open_settings">Einstellungen</string>
     <string name="settings_title">RigzDeck — Einstellungen</string>
-    <string name="auto_discover">Automatisch im Netzwerk finden (empfohlen)</string>
-    <string name="manual_label">Manuell (nur falls die automatische Suche scheitert):</string>
-    <string name="host_hint">z. B. 192.168.1.20 oder rigzdeck.local</string>
-    <string name="port_hint">Port (Standard 7990)</string>
-    <string name="save">Speichern</string>
-    <string name="cancel">Abbrechen</string>
-    <string name="settings_footer">Standard: automatische Suche, Port 7990. Normalerweise musst du hier nichts eingeben.</string>
+    <string name="auto_discover">Hosts automatisch im Netzwerk finden (empfohlen)</string>
+    <string name="manual_label">Manuelle Hosts (z. B. Cockpit oder Tailscale-IP):</string>
+    <string name="label_hint">Name (optional, z. B. Cockpit)</string>
+    <string name="host_hint">Host / IP (z. B. 192.168.10.12)</string>
+    <string name="port_hint">Port (z. B. 7883 fürs Cockpit, 7990 für RigzDeck)</string>
+    <string name="add_host">Hinzufügen</string>
+    <string name="done">Fertig</string>
+    <string name="settings_footer">Standard: automatische Suche, Port 7990. Manuelle Hosts bleiben als feste Tabs erhalten.</string>
 </resources>
