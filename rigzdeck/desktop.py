@@ -71,6 +71,25 @@ def _copy_to_clipboard(text: str) -> None:
         pass
 
 
+def _open_window(url: str) -> None:
+    """Öffnet die URL in einem sauberen App-Fenster (Edge/Chrome ``--app``: keine Adressleiste,
+    keine Tabs, kein Browser-Rahmen, eigenes Icon). Fällt auf den Standardbrowser zurück."""
+    candidates = [
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    ]
+    exe = next((c for c in candidates if Path(c).exists()), None)
+    if exe:
+        try:
+            subprocess.Popen([exe, f"--app={url}"])
+            return
+        except Exception:
+            pass
+    webbrowser.open(url)
+
+
 def main() -> None:
     import pystray
 
@@ -80,10 +99,10 @@ def main() -> None:
     lan = f"http://{_lan_ip()}:{PORT}"
 
     def open_editor(icon=None, item=None):
-        webbrowser.open(local + "/")
+        _open_window(local + "/")
 
     def open_panel(icon=None, item=None):
-        webbrowser.open(local + "/panel")
+        _open_window(local + "/panel")
 
     def copy_lan(icon=None, item=None):
         _copy_to_clipboard(lan + "/panel")

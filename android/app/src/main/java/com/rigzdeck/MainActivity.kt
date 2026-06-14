@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.WindowManager
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)  // Display bleibt an, solange die App offen ist
         web = findViewById(R.id.web)
         overlay = findViewById(R.id.statusOverlay)
         statusText = findViewById(R.id.statusText)
