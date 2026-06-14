@@ -14,7 +14,9 @@ Write-Host "==> Build-/Desktop-Abhaengigkeiten sicherstellen..." -ForegroundColo
 python -m pip install -r requirements.txt -r requirements-build.txt
 
 Write-Host "==> PyInstaller..." -ForegroundColor Cyan
-pyinstaller --noconfirm RigzDeck.spec
+# `python -m PyInstaller` statt blankem `pyinstaller` — der Scripts-Ordner liegt nicht
+# zwangslaeufig auf der PATH (pip warnt beim Install), das Modul findet Python immer.
+python -m PyInstaller --noconfirm RigzDeck.spec
 
 Write-Host ""
 Write-Host "==> Fertig: dist\RigzDeck\RigzDeck.exe" -ForegroundColor Green
