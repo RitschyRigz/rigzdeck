@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -23,12 +25,22 @@ from deckcore.api import build_streamdeck_router
 from .bus import EventBus
 from .defaults import RIGZDECK_DEFAULT_BUTTONS
 
+# Pfade: im Dev relativ zum Repo; als gepackte .exe (PyInstaller, sys.frozen) read-only-
+# Assets aus dem Bundle (sys._MEIPASS) und beschreibbarer State unter %APPDATA%\RigzDeck.
 _PKG = Path(__file__).resolve().parent          # …/rigzdeck/rigzdeck
-_REPO = _PKG.parent                              # repo root
-_WEB_DIST = _REPO / "web" / "dist"              # built frontend (npm run build)
-_RUNTIME = _PKG / "runtime"                      # streamdeck_buttons.json lives here
-_FLAGS = _RUNTIME / "flags"                      # flag-capability dir
-_STATIC = _PKG / "static"                        # uploaded/extracted icons (/static/sd_icons/user)
+if getattr(sys, "frozen", False):
+    _BUNDLE = Path(getattr(sys, "_MEIPASS", _PKG))   # entpacktes Bundle (read-only)
+    _WEB_DIST = _BUNDLE / "web" / "dist"            # gebündeltes Frontend
+    _DATA = Path(os.environ.get("APPDATA") or Path.home()) / "RigzDeck"   # beschreibbar
+    _FILES_BASE = _DATA
+else:
+    _REPO = _PKG.parent                              # repo root
+    _WEB_DIST = _REPO / "web" / "dist"              # built frontend (npm run build)
+    _DATA = _PKG
+    _FILES_BASE = _REPO
+_RUNTIME = _DATA / "runtime"                          # streamdeck_buttons.json lives here
+_FLAGS = _RUNTIME / "flags"                           # flag-capability dir
+_STATIC = _DATA / "static"                            # uploaded/extracted icons (/static/sd_icons/user)
 
 PORT = 7990
 
@@ -73,7 +85,7 @@ def create_app() -> FastAPI:
         bus,
         runtime_dir=_RUNTIME,
         flags_dir=_FLAGS,
-        files_base=_REPO,
+        files_base=_FILES_BASE,
         self_base_url=f"http://127.0.0.1:{PORT}",
         default_buttons=RIGZDECK_DEFAULT_BUTTONS,
     )

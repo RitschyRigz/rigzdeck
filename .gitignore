@@ -13,7 +13,8 @@ rigzdeck/runtime/
 rigzdeck/static/
 *.log
 
-# Build / packaging
+# Build / packaging (PyInstaller-Artefakte; eigene Spec + packaging/ bleiben getrackt)
 build/
 dist/
 *.spec
+!RigzDeck.spec

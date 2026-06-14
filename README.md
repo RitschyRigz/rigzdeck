@@ -32,7 +32,17 @@ python -m rigzdeck            # → http://localhost:7990  (panel: /panel)
 
 > Already cloned without submodules? `git submodule update --init --recursive`
 
-A packaged Windows installer (.exe) is on the roadmap.
+## Package a Windows app (.exe)
+
+```powershell
+pip install -r requirements-build.txt
+.\packaging\build.ps1        # builds the frontend, then bundles dist\RigzDeck\RigzDeck.exe
+```
+
+The `.exe` runs the server in the background and lives in the system tray — open the editor
+or panel, copy the LAN URL for tablets, or quit. Optionally compile `packaging\RigzDeck.iss`
+with [Inno Setup](https://jrsoftware.org/isinfo.php) for an installer (Start-menu shortcut,
+optional autostart, uninstaller).
 
 ## Architecture
 

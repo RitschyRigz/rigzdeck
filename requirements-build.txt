@@ -1,0 +1,5 @@
+# Build-/Desktop-Abhängigkeiten für die gepackte RigzDeck-.exe (NICHT für den reinen Server).
+# Der headless-Server (`python -m rigzdeck`) braucht nur requirements.txt.
+pyinstaller>=6.3
+pystray>=0.19
+pillow>=10.0
