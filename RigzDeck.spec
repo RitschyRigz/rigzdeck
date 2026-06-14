@@ -7,7 +7,9 @@ from PyInstaller.utils.hooks import collect_submodules
 hiddenimports = (
     collect_submodules("uvicorn")
     + collect_submodules("sse_starlette")
-    + ["rigzdeck.app", "deckcore.service", "deckcore.api", "pystray._win32", "PIL"]
+    + collect_submodules("zeroconf")
+    + ["rigzdeck.app", "rigzdeck.discovery", "deckcore.service", "deckcore.api",
+       "pystray._win32", "PIL", "ifaddr"]
 )
 
 a = Analysis(

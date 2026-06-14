@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RigzDeck</string>
+    <string name="searching">Suche RigzDeck im Netzwerk…</string>
+    <string name="not_found">RigzDeck nicht gefunden.\nLäuft die RigzDeck-App am PC? Sonst unten die Adresse manuell eingeben.</string>
+    <string name="connect_failed">Verbindung fehlgeschlagen — prüfe, ob die RigzDeck-App am PC läuft.</string>
+    <string name="open_settings">Einstellungen</string>
+    <string name="settings_title">RigzDeck — Einstellungen</string>
+    <string name="auto_discover">Automatisch im Netzwerk finden (empfohlen)</string>
+    <string name="manual_label">Manuell (nur falls die automatische Suche scheitert):</string>
+    <string name="host_hint">z. B. 192.168.1.20 oder rigzdeck.local</string>
+    <string name="port_hint">Port (Standard 7990)</string>
+    <string name="save">Speichern</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="settings_footer">Standard: automatische Suche, Port 7990. Normalerweise musst du hier nichts eingeben.</string>
+</resources>

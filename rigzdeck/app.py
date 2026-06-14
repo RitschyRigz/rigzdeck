@@ -24,6 +24,7 @@ from deckcore.api import build_streamdeck_router
 
 from .bus import EventBus
 from .defaults import RIGZDECK_DEFAULT_BUTTONS
+from .discovery import Advertiser
 
 # Pfade: im Dev relativ zum Repo; als gepackte .exe (PyInstaller, sys.frozen) read-only-
 # Assets aus dem Bundle (sys._MEIPASS) und beschreibbarer State unter %APPDATA%\RigzDeck.
@@ -90,12 +91,16 @@ def create_app() -> FastAPI:
         default_buttons=RIGZDECK_DEFAULT_BUTTONS,
     )
 
+    advertiser = Advertiser(PORT)
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         await svc.start()
+        advertiser.start()          # mDNS: Android-App findet den Host ohne IP-Eingabe
         try:
             yield
         finally:
+            advertiser.stop()
             await svc.stop()
 
     app = FastAPI(title="RigzDeck", version="0.1.0", lifespan=lifespan)
