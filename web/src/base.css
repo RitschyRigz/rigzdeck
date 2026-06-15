@@ -109,6 +109,13 @@ input::placeholder { color: var(--muted); }
 .th-prev-tile .th-pi { font-size: 20px; line-height: 1; }
 .th-prev-cap { font-size: 12px; margin: 8px 0 0; }
 
+/* ===== OBS-Tab ===== */
+.obs-badge { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px;
+  margin-left: 8px; vertical-align: middle; border: 1px solid var(--line); }
+.obs-badge.ok { color: var(--ok); border-color: rgba(62,207,142,.45); background: rgba(62,207,142,.1); }
+.obs-badge.err { color: var(--err); border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.1); }
+.obs-badge.idle { color: var(--muted); }
+
 /* ===== Panel-Theme-Knopf (nur Touch-Panel) ===== */
 .pt { position: fixed; top: 10px; right: 10px; z-index: 50; }
 .pt-btn { width: 40px; height: 40px; border-radius: 10px; background: var(--bg3); color: var(--fg);

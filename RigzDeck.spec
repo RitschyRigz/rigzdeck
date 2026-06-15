@@ -8,7 +8,9 @@ hiddenimports = (
     collect_submodules("uvicorn")
     + collect_submodules("sse_starlette")
     + collect_submodules("zeroconf")
-    + ["rigzdeck.app", "rigzdeck.discovery", "deckcore.service", "deckcore.api",
+    + collect_submodules("obsws_python")   # OBS-direkt (lazy importiert → sonst nicht erfasst)
+    + collect_submodules("websocket")      # websocket-client (obsws_python-Transport)
+    + ["rigzdeck.app", "rigzdeck.discovery", "deckcore.service", "deckcore.api", "deckcore.obs",
        "pystray._win32", "PIL", "ifaddr"]
 )
 
