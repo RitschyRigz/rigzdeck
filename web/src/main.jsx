@@ -2,6 +2,7 @@ import { render } from 'preact'
 import { useState } from 'preact/hooks'
 import { StreamDeck } from '@deckcore/StreamDeck.jsx'   // geteilter Deck-Editor (deckcore)
 import { Theme } from './Theme.jsx'
+import { Obs } from './Obs.jsx'
 import { initTheme } from './theme.js'
 import './base.css'
 
@@ -20,9 +21,10 @@ function App() {
         <div class="rd-tabs">
           <button class={'rd-tab' + (tab === 'deck' ? ' on' : '')} onClick={() => setTab('deck')}>Deck</button>
           <button class={'rd-tab' + (tab === 'theme' ? ' on' : '')} onClick={() => setTab('theme')}>Theme</button>
+          <button class={'rd-tab' + (tab === 'obs' ? ' on' : '')} onClick={() => setTab('obs')}>OBS</button>
         </div>
       </div>
-      {tab === 'deck' ? <StreamDeck /> : <Theme />}
+      {tab === 'deck' ? <StreamDeck /> : tab === 'theme' ? <Theme /> : <Obs />}
     </div>
   )
 }

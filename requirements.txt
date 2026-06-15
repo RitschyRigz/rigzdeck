@@ -1,3 +1,5 @@
 fastapi>=0.110
 uvicorn[standard]>=0.27
 sse-starlette>=2.0
+zeroconf>=0.130
+obsws-python>=1.7

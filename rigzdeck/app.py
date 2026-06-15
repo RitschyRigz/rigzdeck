@@ -24,6 +24,7 @@ from deckcore.api import build_streamdeck_router
 
 from .bus import EventBus
 from .defaults import RIGZDECK_DEFAULT_BUTTONS
+from .discovery import Advertiser
 
 # Pfade: im Dev relativ zum Repo; als gepackte .exe (PyInstaller, sys.frozen) read-only-
 # Assets aus dem Bundle (sys._MEIPASS) und beschreibbarer State unter %APPDATA%\RigzDeck.
@@ -43,6 +44,31 @@ _FLAGS = _RUNTIME / "flags"                           # flag-capability dir
 _STATIC = _DATA / "static"                            # uploaded/extracted icons (/static/sd_icons/user)
 
 PORT = 7990
+
+
+def _load_obs_config() -> dict:
+    """OBS-Verbindung: gespeicherte runtime/obs.json > ENV (RIGZDECK_OBS_*) > Default 127.0.0.1:4455.
+    Liegt lokal (Single-User-Streaming-Tool) — das OBS-WebSocket-Passwort ist ohnehin lokal."""
+    cfg = {"host": os.environ.get("RIGZDECK_OBS_HOST") or "127.0.0.1",
+           "port": os.environ.get("RIGZDECK_OBS_PORT") or 4455,
+           "password": os.environ.get("RIGZDECK_OBS_PASSWORD") or ""}
+    try:
+        f = _RUNTIME / "obs.json"
+        if f.exists():
+            saved = json.loads(f.read_text(encoding="utf-8"))
+            if isinstance(saved, dict):
+                for k in ("host", "port", "password"):
+                    if k in saved:
+                        cfg[k] = saved[k]
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        cfg["port"] = int(cfg["port"] or 4455)
+    except (TypeError, ValueError):
+        cfg["port"] = 4455
+    cfg["host"] = str(cfg["host"] or "127.0.0.1")
+    cfg["password"] = str(cfg["password"] or "")
+    return cfg
 
 
 async def _one(topic, q):
@@ -80,6 +106,7 @@ def create_app() -> FastAPI:
     _FLAGS.mkdir(parents=True, exist_ok=True)
     (_STATIC / "sd_icons" / "user").mkdir(parents=True, exist_ok=True)
 
+    obs_cfg = _load_obs_config()
     bus = EventBus()
     svc = DeckCoreService(
         bus,
@@ -88,14 +115,22 @@ def create_app() -> FastAPI:
         files_base=_FILES_BASE,
         self_base_url=f"http://127.0.0.1:{PORT}",
         default_buttons=RIGZDECK_DEFAULT_BUTTONS,
+        obs_host=obs_cfg["host"], obs_port=obs_cfg["port"], obs_password=obs_cfg["password"],
     )
+
+    advertiser = Advertiser(PORT)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         await svc.start()
+        # zeroconfs Sync-API NICHT im laufenden Event-Loop aufrufen (sonst EventLoopBlocked
+        # im Frozen-Build) -> Start/Stop in einem Worker-Thread (reiner Sync-Kontext).
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, advertiser.start)   # mDNS: App findet Host ohne IP
         try:
             yield
         finally:
+            await loop.run_in_executor(None, advertiser.stop)
             await svc.stop()
 
     app = FastAPI(title="RigzDeck", version="0.1.0", lifespan=lifespan)
@@ -107,7 +142,8 @@ def create_app() -> FastAPI:
 
     # Shared deck API (registry/resolved/stream/press/buttons/decks + per-deck CRUD/displayfusion/icons)
     app.include_router(build_streamdeck_router(
-        lambda request: svc, sse_response=sse_response, static_dir=_STATIC))
+        lambda request: svc, sse_response=sse_response, static_dir=_STATIC,
+        obs_scenes=lambda: (svc.obs_scenes() or {}).get("scenes", [])))
 
     @app.get("/api/events")
     async def events(request: Request):
@@ -148,6 +184,53 @@ def create_app() -> FastAPI:
         except Exception:  # noqa: BLE001
             pass
         return {"ok": True}
+
+    # ── OBS direkt (obs-websocket-Client im deckcore-Kern) ────────────────
+    # Endpoints, die der geteilte Editor erwartet (/api/obs/scenes + /api/obs/scene_items für die
+    # Dropdowns) + Verbindungs-Settings (Host/Port/Passwort) als lokale runtime/obs.json.
+    _obs_file = _RUNTIME / "obs.json"
+
+    @app.get("/api/obs/status")
+    def obs_status(probe: bool = False):
+        return svc.obs_status(probe=probe)
+
+    @app.get("/api/obs/scenes")
+    def obs_scenes():
+        return svc.obs_scenes()
+
+    @app.get("/api/obs/scene_items")
+    def obs_scene_items():
+        return svc.obs_scene_items()
+
+    @app.get("/api/obs/config")
+    def obs_get_config():
+        c = _load_obs_config()
+        st = svc.obs_status()
+        return {"host": c["host"], "port": c["port"], "has_password": bool(c["password"]),
+                "available": st.get("available"), "connected": st.get("connected")}
+
+    @app.post("/api/obs/config")
+    async def obs_set_config(request: Request):
+        try:
+            data = await request.json()
+        except Exception:  # noqa: BLE001
+            data = {}
+        cur = _load_obs_config()
+        if data.get("host") is not None:
+            cur["host"] = str(data.get("host") or "127.0.0.1")
+        if data.get("port") is not None:
+            try:
+                cur["port"] = int(data.get("port") or 4455)
+            except (TypeError, ValueError):
+                cur["port"] = 4455
+        if data.get("password") is not None:
+            cur["password"] = str(data.get("password") or "")
+        try:
+            _obs_file.write_text(json.dumps(cur, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+        # set_obs_config verbindet neu + prüft (probe) → der „Speichern"-Knopf sieht sofort den Status.
+        return svc.set_obs_config(host=cur["host"], port=cur["port"], password=cur["password"])
 
     # Uploaded icons (served at /static/sd_icons/user/…)
     app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
