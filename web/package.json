@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "gridstack": "^12.6.0",
     "preact": "^10.25.0"
   },
   "devDependencies": {

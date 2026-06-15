@@ -15,6 +15,8 @@ export default defineConfig(() => ({
       { find: 'preact/jsx-dev-runtime', replacement: resolve(__dirname, 'node_modules/preact/jsx-runtime') },
       { find: 'preact/jsx-runtime', replacement: resolve(__dirname, 'node_modules/preact/jsx-runtime') },
       { find: 'preact/hooks', replacement: resolve(__dirname, 'node_modules/preact/hooks') },
+      // gridstack (Frei-Editor in deckcore/web/StreamDeck.jsx) — out-of-tree-Import braucht den expliziten Alias.
+      { find: 'gridstack', replacement: resolve(__dirname, 'node_modules/gridstack') },
     ],
     dedupe: ['preact'],
   },
