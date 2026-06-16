@@ -20,6 +20,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Keystore aus Secret (stabile Signatur -> Updates ohne Deinstallieren)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > android/app/rigzdeck.keystore
+            echo "Keystore geschrieben ($(wc -c < android/app/rigzdeck.keystore) Bytes) -> fester rigz-Key."
+          else
+            echo "Kein ANDROID_KEYSTORE_B64-Secret -> Standard-Debug-Key (instabil)."
+          fi
+
       - name: JDK 17
         uses: actions/setup-java@v4
         with:

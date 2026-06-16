@@ -18,3 +18,7 @@ build/
 dist/
 *.spec
 !RigzDeck.spec
+
+# Android-Signier-Keystore (kommt via CI-Secret ANDROID_KEYSTORE_B64, NIE committen)
+*.keystore
+*.jks

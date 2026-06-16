@@ -11,7 +11,7 @@ RigzDeck is a slim host around the shared **[deckcore](https://github.com/Ritsch
 engine (included here as a git submodule) — a battle-tested deck editor, deck model, and
 renderer wrapped in a minimal FastAPI app.
 
-## Features (v0.2.0)
+## Features (v0.2.1)
 
 - **Decks** — independent view templates (own grid / categories / style), share a button pool.
 - **WYSIWYG editor** — drag buttons into a live grid; per-button image + title overlay.
