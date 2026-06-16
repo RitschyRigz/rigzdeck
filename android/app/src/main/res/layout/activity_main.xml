@@ -4,32 +4,47 @@
     android:layout_height="match_parent"
     android:background="@color/bg">
 
-    <LinearLayout
+    <!-- Deck fuellt den GANZEN Bildschirm (volle Hoehe wie das alte Touch-Dashboard). -->
+    <WebView
+        android:id="@+id/web"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent" />
 
-        <HorizontalScrollView
-            android:layout_width="match_parent"
+    <!-- Host-Auswahlleiste: liegt OBEN ueber dem Deck, standardmaessig versteckt. -->
+    <HorizontalScrollView
+        android:id="@+id/tabScroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@color/bg2"
+        android:scrollbars="none"
+        android:fillViewport="false"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/tabBar"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@color/bg2"
-            android:scrollbars="none"
-            android:fillViewport="false">
+            android:orientation="horizontal"
+            android:padding="4dp" />
+    </HorizontalScrollView>
 
-            <LinearLayout
-                android:id="@+id/tabBar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="4dp" />
-        </HorizontalScrollView>
-
-        <WebView
-            android:id="@+id/web"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-    </LinearLayout>
+    <!-- Kleiner, unscheinbarer Griff: blendet die Host-Leiste ein/aus. -->
+    <TextView
+        android:id="@+id/handle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_margin="6dp"
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp"
+        android:paddingTop="7dp"
+        android:paddingBottom="7dp"
+        android:text="@string/handle_glyph"
+        android:textColor="@color/fg"
+        android:textSize="16sp"
+        android:background="@drawable/handle_bg"
+        android:alpha="0.35" />
 
     <LinearLayout
         android:id="@+id/statusOverlay"

@@ -14,4 +14,7 @@
     <string name="add_host">Hinzufügen</string>
     <string name="done">Fertig</string>
     <string name="settings_footer">Standard: automatische Suche, Port 7990. Manuelle Hosts bleiben als feste Tabs erhalten.</string>
+    <string name="handle_glyph">☰</string>
+    <string name="fullscreen_enter">Vollbild</string>
+    <string name="fullscreen_hint">Vollbild aktiv — von oben nach unten wischen (oder Zurück) für Menü &amp; Einstellungen.</string>
 </resources>

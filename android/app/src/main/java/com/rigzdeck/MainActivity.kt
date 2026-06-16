@@ -1,9 +1,12 @@
 package com.rigzdeck
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.webkit.WebResourceError
@@ -14,13 +17,15 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
 /**
- * Vollbild-WebView mit Multi-Host-Umschalter. Entdeckt alle Deck-Hosts (RigzDeck + Cockpit)
- * automatisch per mDNS und zeigt sie als Tabs oben; manuelle Hosts via Einstellungen. Zero-
- * config: ein Host an -> direkt verbunden. Mehrere -> antippen zum Umschalten.
+ * Vollbild-WebView mit Multi-Host-Umschalter. Entdeckt alle Deck-Hosts automatisch per mDNS.
+ * Das Deck fuellt den ganzen Bildschirm; die Host-Leiste liegt als Overlay darueber und ist
+ * standardmaessig versteckt. Ein kleiner Griff (oben links) blendet sie ein/aus; "Vollbild"
+ * blendet auch den Griff aus -> reines Deck, Rueckkehr per Wisch von oben nach unten / Zurueck.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -28,6 +33,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var overlay: View
     private lateinit var statusText: TextView
     private lateinit var tabBar: LinearLayout
+    private lateinit var tabScroll: View
+    private lateinit var handle: View
+    private var barShown = false
+    private var fullscreen = false
     private val handler = Handler(Looper.getMainLooper())
     private var discovery: Discovery? = null
     private val hosts = LinkedHashMap<String, HostInfo>()
@@ -50,8 +59,12 @@ class MainActivity : AppCompatActivity() {
         overlay = findViewById(R.id.statusOverlay)
         statusText = findViewById(R.id.statusText)
         tabBar = findViewById(R.id.tabBar)
+        tabScroll = findViewById(R.id.tabScroll)
+        handle = findViewById(R.id.handle)
+        handle.setOnClickListener { setBar(!barShown) }
         findViewById<Button>(R.id.statusSettingsBtn).setOnClickListener { openSettings() }
         configureWeb()
+        setupGestures()
         reloadManualHosts()
         rebuildTabs()
         startDiscovery()
@@ -99,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         Settings(this).lastHostKey = key
         loaded = false
         rebuildTabs()
+        setBar(false)              // nach der Wahl klappt die Leiste wieder weg
         statusText.text = h.label
         overlay.visibility = View.GONE
         web.loadUrl(h.url())
@@ -106,6 +120,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun rebuildTabs() {
         tabBar.removeAllViews()
+        val collapse = Button(this)
+        collapse.text = "▲"
+        collapse.isAllCaps = false
+        collapse.minWidth = 0; collapse.minHeight = 0; collapse.setPadding(26, 12, 26, 12)
+        collapse.setOnClickListener { setBar(false) }
+        tabBar.addView(collapse)
         for ((key, h) in hosts) {
             val b = Button(this)
             b.text = h.label
@@ -121,11 +141,55 @@ class MainActivity : AppCompatActivity() {
         gear.minWidth = 0; gear.minHeight = 0; gear.setPadding(26, 12, 26, 12)
         gear.setOnClickListener { openSettings() }
         tabBar.addView(gear)
-        tabBar.visibility = if (hosts.isEmpty()) View.GONE else View.VISIBLE
+        val fs = Button(this)
+        fs.text = getString(R.string.fullscreen_enter)
+        fs.isAllCaps = false
+        fs.minWidth = 0; fs.minHeight = 0; fs.setPadding(26, 12, 26, 12)
+        fs.setOnClickListener { enterFullscreen() }
+        tabBar.addView(fs)
     }
 
     private fun openSettings() =
         settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
+
+    /** Host-Leiste ein-/ausblenden. Der Griff ist sichtbar, solange die Leiste zu ist (und kein Vollbild). */
+    private fun setBar(show: Boolean) {
+        barShown = show
+        tabScroll.visibility = if (show) View.VISIBLE else View.GONE
+        handle.visibility = if (show || fullscreen) View.GONE else View.VISIBLE
+    }
+
+    private fun enterFullscreen() {
+        fullscreen = true
+        setBar(false)              // Leiste + Griff aus -> reines Deck
+        Toast.makeText(this, R.string.fullscreen_hint, Toast.LENGTH_LONG).show()
+    }
+
+    private fun exitFullscreen() {
+        fullscreen = false
+        setBar(true)               // Leiste zeigen; Griff kommt zurueck, sobald man sie schliesst
+    }
+
+    /**
+     * Wisch von oben nach unten (aus dem oberen Bildschirmrand) holt im Vollbild das Menue zurueck.
+     * Der Listener verbraucht das Event NIE (return false) -> normale Deck-Tipps bleiben unberuehrt.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupGestures() {
+        val gd = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onScroll(e1: MotionEvent?, e2: MotionEvent, dx: Float, dy: Float): Boolean {
+                if (fullscreen && e1 != null) {
+                    val topEdge = resources.displayMetrics.heightPixels * 0.12f
+                    val down = e2.y - e1.y
+                    if (e1.y < topEdge && down > 140f && down > Math.abs(e2.x - e1.x)) {
+                        runOnUiThread { exitFullscreen() }
+                    }
+                }
+                return false
+            }
+        })
+        web.setOnTouchListener { _, ev -> gd.onTouchEvent(ev); false }
+    }
 
     private fun configureWeb() {
         val s = web.settings
@@ -161,7 +225,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Suppress("DEPRECATION")
-    override fun onBackPressed() { if (web.canGoBack()) web.goBack() else super.onBackPressed() }
+    override fun onBackPressed() {
+        if (fullscreen) exitFullscreen()
+        else if (web.canGoBack()) web.goBack()
+        else super.onBackPressed()
+    }
 
     override fun onDestroy() { discovery?.stop(); super.onDestroy() }
 }
