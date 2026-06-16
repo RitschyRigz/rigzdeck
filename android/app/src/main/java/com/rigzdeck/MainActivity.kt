@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.WindowManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -22,7 +23,9 @@ import androidx.appcompat.app.AppCompatActivity
  * Das Deck fuellt den ganzen Bildschirm; die Host-Leiste liegt als Overlay darueber und ist
  * standardmaessig versteckt. Ein kleiner Griff (oben links) blendet sie ein/aus.
  *
- * Das echte "nur das Deck"-Vollbild lebt im Web (deckcore) — nicht hier in der Huelle.
+ * Das echte "nur das Deck"-Vollbild lebt im Web (deckcore, setzt body.dc-deck-fs). Ein injizierter
+ * MutationObserver meldet diesen Zustand zurueck (DeckHostNative.fs) -> im Vollbild blendet die
+ * Huelle auch ihren Griff aus, damit WIRKLICH nur das Deck zu sehen ist (zurueck per Wisch von oben).
  */
 class MainActivity : AppCompatActivity() {
 
@@ -33,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tabScroll: View
     private lateinit var handle: View
     private var barShown = false
+    private var webFs = false            // Web meldet Deck-Vollbild (body.dc-deck-fs) -> Griff ausblenden
     private val handler = Handler(Looper.getMainLooper())
     private var discovery: Discovery? = null
     private val hosts = LinkedHashMap<String, HostInfo>()
@@ -106,6 +110,7 @@ class MainActivity : AppCompatActivity() {
         selectedKey = key
         Settings(this).lastHostKey = key
         loaded = false
+        webFs = false              // neue Seite -> Vollbild-Zustand zuruecksetzen
         rebuildTabs()
         setBar(false)              // nach der Wahl klappt die Leiste wieder weg
         statusText.text = h.label
@@ -141,11 +146,24 @@ class MainActivity : AppCompatActivity() {
     private fun openSettings() =
         settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
 
-    /** Host-Leiste ein-/ausblenden. Der Griff ist sichtbar, solange die Leiste zu ist. */
+    /** Host-Leiste ein-/ausblenden. Der Griff ist sichtbar, solange die Leiste zu ist UND kein Web-Vollbild. */
     private fun setBar(show: Boolean) {
         barShown = show
         tabScroll.visibility = if (show) View.VISIBLE else View.GONE
-        handle.visibility = if (show) View.GONE else View.VISIBLE
+        handle.visibility = if (show || webFs) View.GONE else View.VISIBLE
+    }
+
+    /** Vom Web gemeldet (body.dc-deck-fs): im Deck-Vollbild auch den Griff der Huelle ausblenden. */
+    private fun setWebFullscreen(on: Boolean) {
+        webFs = on
+        if (on) setBar(false)
+        else handle.visibility = if (barShown) View.GONE else View.VISIBLE
+    }
+
+    /** JS-Bruecke: das geteilte Deck (deckcore) meldet hierueber seinen Vollbild-Zustand. */
+    inner class DeckHostBridge {
+        @JavascriptInterface
+        fun fs(on: Boolean) { runOnUiThread { setWebFullscreen(on) } }
     }
 
     private fun configureWeb() {
@@ -156,9 +174,11 @@ class MainActivity : AppCompatActivity() {
         s.loadWithOverviewMode = true
         s.mediaPlaybackRequiresUserGesture = false
         s.cacheMode = WebSettings.LOAD_DEFAULT
+        web.addJavascriptInterface(DeckHostBridge(), "DeckHostNative")
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (url != null && url != "about:blank") { loaded = true; overlay.visibility = View.GONE }
+                view?.evaluateJavascript(FS_OBSERVER_JS, null)   // beobachtet body.dc-deck-fs -> DeckHostNative.fs
             }
             override fun onReceivedError(view: WebView?, req: WebResourceRequest?, err: WebResourceError?) {
                 if (req?.isForMainFrame == true) { loaded = false; showStatus(getString(R.string.connect_failed)) }
@@ -185,4 +205,20 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() { if (web.canGoBack()) web.goBack() else super.onBackPressed() }
 
     override fun onDestroy() { discovery?.stop(); super.onDestroy() }
+
+    companion object {
+        // Beobachtet die body-Klasse der geladenen Seite und meldet Deck-Vollbild an die Huelle.
+        private val FS_OBSERVER_JS = """
+            (function(){
+              try {
+                var b = document.body; if(!b) return;
+                function emit(){ try { DeckHostNative.fs(document.body.classList.contains('dc-deck-fs')); } catch(e){} }
+                if (window.__rdFsObs) window.__rdFsObs.disconnect();
+                window.__rdFsObs = new MutationObserver(emit);
+                window.__rdFsObs.observe(b, { attributes:true, attributeFilter:['class'] });
+                emit();
+              } catch(e){}
+            })();
+        """.trimIndent()
+    }
 }
