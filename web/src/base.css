@@ -20,6 +20,9 @@ a { color: var(--accent2); }
 .rd-editor { max-width: 1100px; margin: 0 auto; padding: 16px 18px 48px; }
 .rd-h { font-size: 20px; margin: 4px 0 16px; display: flex; align-items: baseline; gap: 8px; }
 .rd-panel { height: 100%; padding: 10px; }
+/* Deck-Vollbild (deckcore body.dc-deck-fs): Theme-Knopf weg, Panel randlos (das Deck bekommt seinen Innenabstand vom Kern). */
+body.dc-deck-fs .pt { display: none; }
+body.dc-deck-fs .rd-panel { padding: 0; }
 
 /* Buttons */
 .btn { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 6px 14px; cursor: pointer; font: inherit; }
