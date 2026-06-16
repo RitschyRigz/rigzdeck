@@ -3,6 +3,7 @@ package com.rigzdeck
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.net.wifi.WifiManager
 import android.os.Handler
 import android.os.Looper
 
@@ -29,6 +30,8 @@ class Discovery(
     private val onLost: (String) -> Unit,
 ) {
     private val nsd = context.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
+    private val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+    private var multicastLock: WifiManager.MulticastLock? = null
     private val handler = Handler(Looper.getMainLooper())
     private var listener: NsdManager.DiscoveryListener? = null
     private val pending = ArrayDeque<NsdServiceInfo>()
@@ -37,6 +40,13 @@ class Discovery(
     companion object { const val TYPE = "_rigzdeck._tcp." }
 
     fun start() {
+        // Ohne gehaltenen MulticastLock liefern manche Geräte eingehende mDNS-Multicast-Pakete
+        // gar nicht an die App aus -> Discovery findet nichts. Permission steht im Manifest.
+        try {
+            if (multicastLock == null)
+                multicastLock = wifi?.createMulticastLock("rigzdeck-mdns")?.apply { setReferenceCounted(false) }
+            multicastLock?.takeIf { !it.isHeld }?.acquire()
+        } catch (e: Exception) {}
         val l = object : NsdManager.DiscoveryListener {
             override fun onStartDiscoveryFailed(t: String?, e: Int) {}
             override fun onStopDiscoveryFailed(t: String?, e: Int) {}
@@ -89,5 +99,6 @@ class Discovery(
         listener = null
         pending.clear()
         resolving = false
+        try { multicastLock?.takeIf { it.isHeld }?.release() } catch (e: Exception) {}
     }
 }
