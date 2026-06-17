@@ -144,6 +144,28 @@ def _port_in_use(port: int) -> bool:
             pass
 
 
+def _wait_for_system_ready(max_net_wait: float = 45.0) -> None:
+    """Beim AUTOSTART dem System Zeit geben, bis Netzwerk + Dienste (Wave Link / OBS / Audio) oben
+    sind, BEVOR der Server + seine Verbindungen starten. Sonst scheitert der erste Verbindungsaufbau
+    beim sehr frühen Boot-Start → Quellen werden „nach Reboot nicht erkannt" und ziehen erst nach
+    manuellem Neustart nach (klassischer Autostart-Race). Wartet erst auf eine echte LAN-IP (Netzwerk
+    da), dann einen Settle-Puffer für Wave Link/Audio (Default 20 s, per ENV ``RIGZDECK_AUTOSTART_DELAY``
+    überschreibbar — 0 schaltet das Warten ab)."""
+    import time
+    deadline = time.monotonic() + max_net_wait
+    while time.monotonic() < deadline:
+        ip = _lan_ip()
+        if ip and not ip.startswith("127."):
+            break          # Netzwerk ist oben
+        time.sleep(1.0)
+    try:
+        settle = float(os.environ.get("RIGZDECK_AUTOSTART_DELAY", "20"))
+    except (TypeError, ValueError):
+        settle = 20.0
+    if settle > 0:
+        time.sleep(settle)
+
+
 # ── Autostart mit Windows (HKCU\…\Run — pro Benutzer, kein Admin) — 3 Modi: off/tray/window ──
 _RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 _AUTOSTART_NAME = "RigzDeck"
@@ -195,6 +217,13 @@ def main() -> None:
         if "--autostart" not in sys.argv:
             _open_window(f"http://127.0.0.1:{PORT}/")
         return
+
+    # Autostart: warten, bis Netzwerk + Wave Link / OBS / Audio oben sind, BEVOR der Server + die
+    # Verbindungen starten (sonst „nach Reboot nichts erkannt", zieht erst nach manuellem Neustart
+    # nach). Manueller Start (kein --autostart) startet sofort. Die Einmal-Sperre (Mutex) ist hier
+    # schon gesetzt → während des Wartens kann keine zweite Instanz hochkommen.
+    if "--autostart" in sys.argv:
+        _wait_for_system_ready()
 
     import pystray
 
