@@ -121,6 +121,9 @@ input::placeholder { color: var(--muted); }
 
 /* ===== Panel-Theme-Knopf (nur Touch-Panel) ===== */
 .pt { position: fixed; top: 10px; right: 10px; z-index: 50; }
+/* Deck-Leiste rechts Platz lassen, damit der fixierte Theme-Knopf den ⛶-Vollbild-Knopf
+   (deckcore .t-fs-btn, ganz rechts in der Leiste) NICHT überdeckt — so sitzen beide nebeneinander. */
+.t-deck-tabs, .t-deck-bar-min { padding-right: 52px; }
 .pt-btn { width: 40px; height: 40px; border-radius: 10px; background: var(--bg3); color: var(--fg);
   border: 1px solid var(--line); font-size: 18px; line-height: 1; cursor: pointer; }
 .pt-btn:hover { border-color: var(--accent); }
