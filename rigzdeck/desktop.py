@@ -91,48 +91,75 @@ def _open_window(url: str) -> None:
     webbrowser.open(url)
 
 
-# ── Autostart mit Windows (HKCU\…\Run — pro Benutzer, kein Admin nötig) ──────────
+# ── Single-Instance-Sperre (Named Mutex) — verhindert eine 2. Instanz ────────────
+_MUTEX_HANDLE = None   # prozessweit gehalten, solange RigzDeck läuft
+
+
+def _already_running() -> bool:
+    """True, wenn bereits eine RigzDeck-Instanz läuft. Legt einen Named Mutex an (atomar) — eine
+    zweite Instanz sieht ``ERROR_ALREADY_EXISTS`` und beendet sich. Auch bei gleichzeitigem Boot-
+    Autostart startet so nur EINE Instanz. Nur Windows; sonst (oder bei Fehler) False."""
+    global _MUTEX_HANDLE
+    try:
+        import ctypes
+        _MUTEX_HANDLE = ctypes.windll.kernel32.CreateMutexW(None, False, "RigzDeck_SingleInstance")
+        return ctypes.windll.kernel32.GetLastError() == 183   # ERROR_ALREADY_EXISTS
+    except Exception:
+        return False
+
+
+# ── Autostart mit Windows (HKCU\…\Run — pro Benutzer, kein Admin) — 3 Modi: off/tray/window ──
 _RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 _AUTOSTART_NAME = "RigzDeck"
 
 
-def _autostart_command() -> str:
-    """Befehl für den Windows-Login: die gefrorene .exe mit ``--autostart`` (startet still in den
-    Tray, ohne den Editor zu öffnen). Im Dev-Modus pythonw -m rigzdeck.desktop."""
+def _autostart_command(window: bool) -> str:
+    """Login-Befehl. ``window=False`` → still in den Tray (``--autostart``); ``window=True`` → mit
+    Fenster (kein Flag → öffnet den Editor). Im Dev-Modus pythonw -m rigzdeck.desktop."""
+    flag = "" if window else " --autostart"
     if getattr(sys, "frozen", False):
-        return f'"{sys.executable}" --autostart'
+        return f'"{sys.executable}"{flag}'
     pyw = Path(sys.executable).with_name("pythonw.exe")
     exe = pyw if pyw.exists() else Path(sys.executable)
-    return f'"{exe}" -m rigzdeck.desktop --autostart'
+    return f'"{exe}" -m rigzdeck.desktop{flag}'
 
 
-def autostart_enabled() -> bool:
-    """Ist RigzDeck im Autostart eingetragen?"""
+def autostart_mode() -> str:
+    """``'off'`` | ``'tray'`` | ``'window'`` — abgeleitet aus dem Run-Eintrag (``--autostart`` = tray)."""
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _RUN_KEY) as k:
-            winreg.QueryValueEx(k, _AUTOSTART_NAME)
-        return True
+            val, _ = winreg.QueryValueEx(k, _AUTOSTART_NAME)
+        return "tray" if "--autostart" in (val or "") else "window"
     except OSError:
-        return False
+        return "off"
 
 
-def set_autostart(enabled: bool) -> bool:
-    """Autostart-Eintrag setzen/entfernen. Gibt True bei Erfolg zurück."""
+def set_autostart_mode(mode: str) -> bool:
+    """Autostart-Modus setzen: ``'off'`` (Eintrag löschen) · ``'tray'`` (still) · ``'window'`` (mit Fenster)."""
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
-            if enabled:
-                winreg.SetValueEx(k, _AUTOSTART_NAME, 0, winreg.REG_SZ, _autostart_command())
-            else:
+            if mode == "off":
                 try:
                     winreg.DeleteValue(k, _AUTOSTART_NAME)
                 except FileNotFoundError:
                     pass
+            else:
+                winreg.SetValueEx(k, _AUTOSTART_NAME, 0, winreg.REG_SZ,
+                                  _autostart_command(window=(mode == "window")))
         return True
     except OSError:
         return False
 
 
 def main() -> None:
+    # Single-Instance: läuft schon eine Instanz, KEINE zweite starten (behebt „2 Tray-Icons nach
+    # jedem Neustart" aus doppeltem Autostart ODER manuellem Doppelstart). Bei manuellem Start das
+    # Fenster der laufenden Instanz holen, statt dass scheinbar „nichts passiert".
+    if _already_running():
+        if "--autostart" not in sys.argv:
+            _open_window(f"http://127.0.0.1:{PORT}/")
+        return
+
     import pystray
 
     srv = _Server()
@@ -149,8 +176,10 @@ def main() -> None:
     def copy_lan(icon=None, item=None):
         _copy_to_clipboard(lan + "/panel")
 
-    def toggle_autostart(icon=None, item=None):
-        set_autostart(not autostart_enabled())
+    def set_mode(mode):
+        def _handler(icon=None, item=None):
+            set_autostart_mode(mode)
+        return _handler
 
     def quit_app(icon, item):
         srv.stop()
@@ -161,8 +190,14 @@ def main() -> None:
         pystray.MenuItem("Panel öffnen", open_panel),
         pystray.MenuItem(f"Tablet-URL kopieren  ({lan}/panel)", copy_lan),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Mit Windows starten", toggle_autostart,
-                         checked=lambda item: autostart_enabled()),
+        pystray.MenuItem("Mit Windows starten", pystray.Menu(
+            pystray.MenuItem("Aus", set_mode("off"),
+                             checked=lambda item: autostart_mode() == "off", radio=True),
+            pystray.MenuItem("Nur Tray (unsichtbar)", set_mode("tray"),
+                             checked=lambda item: autostart_mode() == "tray", radio=True),
+            pystray.MenuItem("Mit Fenster", set_mode("window"),
+                             checked=lambda item: autostart_mode() == "window", radio=True),
+        )),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Beenden", quit_app),
     )

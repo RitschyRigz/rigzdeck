@@ -2,7 +2,7 @@
 ; Vorher:  .\packaging\build.ps1   (erzeugt dist\RigzDeck\)
 ; Bauen:   ISCC.exe packaging\RigzDeck.iss   (Inno Setup Compiler)
 #define AppName "RigzDeck"
-#define AppVersion "0.4.0"
+#define AppVersion "0.4.1"
 #define AppPublisher "RitschyRigz"
 #define AppExe "RigzDeck.exe"
 
@@ -28,7 +28,11 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "autostart"; Description: "RigzDeck mit Windows starten"; GroupDescription: "Autostart:"; Flags: unchecked
+
+; Autostart wird im Tray verwaltet (RigzDeck-Tray -> "Mit Windows starten": Aus / nur Tray / mit Fenster) —
+; NICHT per Installer (zwei konkurrierende Autostarts = zwei Instanzen). Alte Autostart-Verknuepfung aufraeumen:
+[InstallDelete]
+Type: files; Name: "{userstartup}\{#AppName}.lnk"
 
 [Files]
 Source: "..\dist\RigzDeck\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
@@ -37,7 +41,6 @@ Source: "..\dist\RigzDeck\*"; DestDir: "{app}"; Flags: recursesubdirs createalls
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
-Name: "{userstartup}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: autostart
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
