@@ -3,6 +3,8 @@ import { useState } from 'preact/hooks'
 import { StreamDeck } from '@deckcore/StreamDeck.jsx'   // geteilter Deck-Editor (deckcore)
 import { Theme } from './Theme.jsx'
 import { Obs } from './Obs.jsx'
+import { VersionBadge } from './VersionBadge.jsx'
+import { OfflineScreen } from './OfflineScreen.jsx'
 import { initTheme } from './theme.js'
 import './base.css'
 
@@ -25,6 +27,8 @@ function App() {
         </div>
       </div>
       {tab === 'deck' ? <StreamDeck /> : tab === 'theme' ? <Theme /> : <Obs />}
+      <VersionBadge />
+      <OfflineScreen />
     </div>
   )
 }

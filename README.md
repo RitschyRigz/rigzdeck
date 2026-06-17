@@ -11,7 +11,7 @@ RigzDeck is a slim host around the shared **[deckcore](https://github.com/Ritsch
 engine (included here as a git submodule) — a battle-tested deck editor, deck model, and
 renderer wrapped in a minimal FastAPI app.
 
-## Features (v0.4.4)
+## Features (v0.4.5)
 
 - **Decks** — independent view templates (own grid / categories / style), share a button pool.
 - **WYSIWYG editor** — drag buttons into a live grid; free placement, per-button image + title
@@ -26,7 +26,7 @@ renderer wrapped in a minimal FastAPI app.
   with optional “Wave Link follows Windows default” coupling — all built right in the editor.
 - **Sensors** — HWiNFO sensors + PresentMon FPS / frametime as value or live-graph tiles.
 - **Status monitors** — poll / file / flag / OBS scene / DisplayFusion profile / default-device …
-- **Touch panel** over LAN for tablets (deck fullscreen) + the Elgato Stream Deck plugin.
+- **Touch panel** over LAN for tablets (deck fullscreen, offline screen, version badge) + the Elgato Stream Deck plugin.
 
 ## Run (dev)
 

@@ -145,25 +145,25 @@ def _port_in_use(port: int) -> bool:
 
 
 def _wait_for_system_ready(max_net_wait: float = 45.0) -> None:
-    """Beim AUTOSTART dem System Zeit geben, bis Netzwerk + Dienste (Wave Link / OBS / Audio) oben
-    sind, BEVOR der Server + seine Verbindungen starten. Sonst scheitert der erste Verbindungsaufbau
-    beim sehr frühen Boot-Start → Quellen werden „nach Reboot nicht erkannt" und ziehen erst nach
-    manuellem Neustart nach (klassischer Autostart-Race). Wartet erst auf eine echte LAN-IP (Netzwerk
-    da), dann einen Settle-Puffer für Wave Link/Audio (Default 20 s, per ENV ``RIGZDECK_AUTOSTART_DELAY``
-    überschreibbar — 0 schaltet das Warten ab)."""
+    """OPT-IN, standardmäßig **AUS**. Der „nach Reboot nichts erkannt"-Fall war NICHT Bereitschafts-
+    Timing, sondern eine alte **v0.1.0**, die beim Boot Port 7990 grabschte (live per LAN-Probe
+    bestätigt) — daher kein Warten by default. Nur wenn ``RIGZDECK_AUTOSTART_DELAY`` > 0 gesetzt ist
+    (Notnagel, falls Wave Link/OBS auf einem Rechner wirklich mal spät kommen), wird beim Autostart
+    auf eine echte LAN-IP (max 45 s) + diesen Settle-Puffer gewartet, bevor Server/Verbindungen starten."""
     import time
+    try:
+        settle = float(os.environ.get("RIGZDECK_AUTOSTART_DELAY", "0"))
+    except (TypeError, ValueError):
+        settle = 0.0
+    if settle <= 0:
+        return
     deadline = time.monotonic() + max_net_wait
     while time.monotonic() < deadline:
         ip = _lan_ip()
         if ip and not ip.startswith("127."):
-            break          # Netzwerk ist oben
+            break
         time.sleep(1.0)
-    try:
-        settle = float(os.environ.get("RIGZDECK_AUTOSTART_DELAY", "20"))
-    except (TypeError, ValueError):
-        settle = 20.0
-    if settle > 0:
-        time.sleep(settle)
+    time.sleep(settle)
 
 
 # ── Autostart mit Windows (HKCU\…\Run — pro Benutzer, kein Admin) — 3 Modi: off/tray/window ──
