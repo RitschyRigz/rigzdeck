@@ -7,6 +7,7 @@ so importing this module doesn't require them — only ``main()`` does.
 """
 from __future__ import annotations
 
+import os
 import socket
 import subprocess
 import sys
@@ -84,7 +85,14 @@ def _open_window(url: str) -> None:
     exe = next((c for c in candidates if Path(c).exists()), None)
     if exe:
         try:
-            subprocess.Popen([exe, f"--app={url}"])
+            # Eigenes user-data-dir → das --app-Fenster wird IMMER neu geöffnet. Ohne das delegiert
+            # Edge/Chrome an eine bereits laufende Browser-Instanz und macht KEIN App-Fenster auf
+            # (→ „lässt sich nicht öffnen", obwohl der Server läuft). --no-first-run unterdrückt das
+            # Willkommens-/Default-Browser-Geplänkel im frischen Profil.
+            prof = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or Path.home()) / "RigzDeck" / "browser"
+            prof.mkdir(parents=True, exist_ok=True)
+            subprocess.Popen([exe, f"--app={url}", f"--user-data-dir={prof}",
+                              "--no-first-run", "--no-default-browser-check"])
             return
         except Exception:
             pass
