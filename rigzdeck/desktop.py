@@ -96,16 +96,44 @@ _MUTEX_HANDLE = None   # prozessweit gehalten, solange RigzDeck läuft
 
 
 def _already_running() -> bool:
-    """True, wenn bereits eine RigzDeck-Instanz läuft. Legt einen Named Mutex an (atomar) — eine
-    zweite Instanz sieht ``ERROR_ALREADY_EXISTS`` und beendet sich. Auch bei gleichzeitigem Boot-
-    Autostart startet so nur EINE Instanz. Nur Windows; sonst (oder bei Fehler) False."""
+    """True, wenn bereits eine RigzDeck-Instanz läuft. ZWEI robuste Checks (ODER):
+      (1) **Named Mutex** (atomar) → fängt den gleichzeitigen Boot-Start zweier Launcher ab, BEVOR
+          überhaupt jemand den Port bindet.
+      (2) **Port-Probe** auf 7990 → fängt ALLES ab, was den Port schon hält (eine bereits laufende
+          Instanz, eine ALTE Version ohne Mutex, ein headless `python -m rigzdeck`). Damit startet nie
+          ein zweiter Server → kein `[Errno 10048]`-Bind-Fehler + kein mDNS-Spam mehr.
+    Konservativ False bei Fehlern (lieber starten als gar nicht)."""
+    return _mutex_taken() or _port_in_use(PORT)
+
+
+def _mutex_taken() -> bool:
+    """Named-Mutex-Check — ZUVERLÄSSIG via ``use_last_error=True`` + ``ctypes.get_last_error()``
+    (das blanke ``windll.kernel32.GetLastError()`` ist in ctypes unzuverlässig: ctypes kann den
+    Fehlercode zwischen den Calls zurücksetzen → mal greift die Sperre, mal nicht)."""
     global _MUTEX_HANDLE
     try:
         import ctypes
-        _MUTEX_HANDLE = ctypes.windll.kernel32.CreateMutexW(None, False, "RigzDeck_SingleInstance")
-        return ctypes.windll.kernel32.GetLastError() == 183   # ERROR_ALREADY_EXISTS
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        _MUTEX_HANDLE = k32.CreateMutexW(None, False, "RigzDeck_SingleInstance")
+        return ctypes.get_last_error() == 183   # ERROR_ALREADY_EXISTS
     except Exception:
         return False
+
+
+def _port_in_use(port: int) -> bool:
+    """True, wenn auf 127.0.0.1:<port> schon jemand lauscht (laufende RigzDeck-Instanz)."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.5)
+    try:
+        return s.connect_ex(("127.0.0.1", int(port))) == 0
+    except Exception:
+        return False
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
 
 
 # ── Autostart mit Windows (HKCU\…\Run — pro Benutzer, kein Admin) — 3 Modi: off/tray/window ──
