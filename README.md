@@ -11,14 +11,20 @@ RigzDeck is a slim host around the shared **[deckcore](https://github.com/Ritsch
 engine (included here as a git submodule) — a battle-tested deck editor, deck model, and
 renderer wrapped in a minimal FastAPI app.
 
-## Features (v0.2.1)
+## Features (v0.3.0)
 
 - **Decks** — independent view templates (own grid / categories / style), share a button pool.
-- **WYSIWYG editor** — drag buttons into a live grid; per-button image + title overlay.
+- **WYSIWYG editor** — drag buttons into a live grid; free placement, per-button image + title
+  overlay, widget tiles (clock / text / graph), resizable tiles, folders & radial menus.
 - **Generic capabilities** — `launch` (any .exe/.py/.lnk, native file picker + icon extraction),
-  `displayfusion` (load monitor profiles), `media` (play/pause · ⏭⏮ · volume · mute),
-  `hotkey` (send any key combo), `http`, `flag`; status monitors (poll/file/flag/displayfusion…).
-- **Touch panel** over LAN for tablets + the Elgato Stream Deck plugin.
+  `obs` (scene / source toggle / stream / record), `displayfusion` (load monitor profiles),
+  `media` (play/pause · ⏭⏮ · volume · mute), `hotkey` (send any key combo), `http`, `flag`.
+- **Audio (Wave Link + Windows)** — one click syncs the running Wave Link app into a fader deck
+  (per-mix/channel level + mute, live VU); switch the Windows default output device from a button,
+  with optional “Wave Link follows Windows default” coupling — all built right in the editor.
+- **Sensors** — HWiNFO sensors + PresentMon FPS / frametime as value or live-graph tiles.
+- **Status monitors** — poll / file / flag / OBS scene / DisplayFusion profile / default-device …
+- **Touch panel** over LAN for tablets (deck fullscreen) + the Elgato Stream Deck plugin.
 
 ## Run (dev)
 
