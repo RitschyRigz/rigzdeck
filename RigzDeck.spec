@@ -13,7 +13,7 @@ hiddenimports = (
     + collect_submodules("comtypes")       # winaudio: IPolicyConfig via comtypes (lazy → sonst nicht erfasst)
     + collect_submodules("pycaw")          # winaudio: Windows-Core-Audio-Geräte (lazy)
     + ["rigzdeck.app", "rigzdeck.discovery", "deckcore.service", "deckcore.api", "deckcore.obs",
-       "deckcore.wavelink", "deckcore.winaudio",
+       "deckcore.wavelink", "deckcore.winaudio", "deckcore.winaudio_helper",
        "pystray._win32", "PIL", "ifaddr"]
 )
 

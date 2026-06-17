@@ -38,6 +38,13 @@ def _redirect_streams() -> None:
 
 
 if __name__ == "__main__":
+    # Audio-Helfer-Subprozess: der winaudio-Client (deckcore) spawnt im eingefrorenen Build
+    # `RigzDeck.exe --deckcore-winaudio-helper`. MUSS vor _redirect_streams laufen — der Helfer nutzt
+    # stdout als JSON-IPC-Kanal (NICHT auf ein Logfile umbiegen!). So lebt das gesamte Core-Audio-COM
+    # in einem eigenen Prozess → ein COM-Crash kann den Host nicht mitreißen.
+    if "--deckcore-winaudio-helper" in sys.argv:
+        from deckcore.winaudio_helper import main as _helper_main
+        sys.exit(_helper_main())
     _redirect_streams()
     try:
         from rigzdeck.desktop import main
