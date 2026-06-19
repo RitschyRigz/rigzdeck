@@ -133,7 +133,7 @@ def create_app() -> FastAPI:
             await loop.run_in_executor(None, advertiser.stop)
             await svc.stop()
 
-    app = FastAPI(title="RigzDeck", version="0.7.1", lifespan=lifespan)
+    app = FastAPI(title="RigzDeck", version="0.7.2", lifespan=lifespan)
     app.state.bus = bus
     app.state.svc = svc
 
@@ -158,7 +158,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"ok": True, "app": "RigzDeck", "version": "0.7.1",
+        return {"ok": True, "app": "RigzDeck", "version": "0.7.2",
                 "buttons": len(svc.list_buttons()), "decks": len(svc.decks())}
 
     # Geteiltes Theme (Synced): der Editor schreibt es, Geräte ohne lokales Override folgen ihm.
@@ -242,7 +242,7 @@ def create_app() -> FastAPI:
     def index():
         f = _WEB_DIST / "index.html"
         if f.exists():
-            return FileResponse(str(f))
+            return FileResponse(str(f), headers={"Cache-Control": "no-cache, must-revalidate"})
         return PlainTextResponse(
             "RigzDeck-Frontend ist noch nicht gebaut.\nIm web/-Ordner:  npm install && npm run build",
             status_code=503)
@@ -251,7 +251,7 @@ def create_app() -> FastAPI:
     def panel():
         f = _WEB_DIST / "touch.html"
         if f.exists():
-            return FileResponse(str(f))
+            return FileResponse(str(f), headers={"Cache-Control": "no-cache, must-revalidate"})
         return PlainTextResponse("RigzDeck-Panel-Build fehlt (web/: npm run build).", status_code=503)
 
     # Übrige gebaute Frontend-Dateien aus dem dist-Root (Favicon, Brand-Assets via web/public/, …).
