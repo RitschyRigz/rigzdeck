@@ -90,6 +90,12 @@ async def _sse_gen(request: Request, bus: EventBus, topics: list, initial: list)
             done, pending = await asyncio.wait(tasks, timeout=10, return_when=asyncio.FIRST_COMPLETED)
             for p in pending:
                 p.cancel()
+            if not done:
+                # Named heartbeat so the client watchdog (web/sse.js) sees a sign of life and does
+                # NOT falsely reconnect an idle panel. (The ping= on EventSourceResponse is only a
+                # silent SSE comment that JS never receives as an event.)
+                yield {"event": "ping", "data": "{}"}
+                continue
             for d in done:
                 try:
                     t, payload = d.result()
