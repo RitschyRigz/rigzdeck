@@ -4,4 +4,4 @@ Turns any tablet (or the Elgato plugin) into a fully configurable stream deck, w
 heavy backend machinery. The deck logic lives in `deckcore`; this package is just the slim
 host (FastAPI server + event bus + static serving).
 """
-__version__ = "0.8.4"
+__version__ = "0.8.5"
