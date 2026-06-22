@@ -46,6 +46,38 @@ export const PRESETS = {
     '--bg': '#000000', '--bg2': '#0a0a0a', '--bg3': '#151515', '--line': '#2c2c2c',
     '--fg': '#ffffff', '--muted': '#9aa0aa', '--accent': '#22d3ee', '--accent2': '#8a5cff',
     '--ok': '#3ecf8e', '--warn': '#ffb454', '--err': '#ff6b6b', '--live': '#ff4d6d' } },
+  gold: { name: 'RitschyRigz Gold', vars: {
+    '--bg': '#0d0b07', '--bg2': '#15110a', '--bg3': '#1d180d', '--line': '#3a2f17',
+    '--fg': '#f5ecd8', '--muted': '#b09a6e', '--accent': '#e8b34a', '--accent2': '#d4943a',
+    '--ok': '#3ecf8e', '--warn': '#ffcf6b', '--err': '#ff6b6b', '--live': '#ff4d6d' } },
+  crimson: { name: 'Crimson', vars: {
+    '--bg': '#120a0c', '--bg2': '#1a0e11', '--bg3': '#241317', '--line': '#45222a',
+    '--fg': '#f3e6e8', '--muted': '#b58a90', '--accent': '#ef4444', '--accent2': '#f87171',
+    '--ok': '#3ecf8e', '--warn': '#ffb454', '--err': '#ff5d5d', '--live': '#ff2f5e' } },
+  synthwave: { name: 'Synthwave', vars: {
+    '--bg': '#0f0a1e', '--bg2': '#160d2b', '--bg3': '#1f1338', '--line': '#3a2566',
+    '--fg': '#f5e9ff', '--muted': '#9d8ad0', '--accent': '#ff4ecd', '--accent2': '#36e0ff',
+    '--ok': '#2bd9a6', '--warn': '#ffb454', '--err': '#ff5d8a', '--live': '#ff2f9e' } },
+  nord: { name: 'Nord', vars: {
+    '--bg': '#242933', '--bg2': '#2e3440', '--bg3': '#3b4252', '--line': '#4c566a',
+    '--fg': '#eceff4', '--muted': '#9aa4b8', '--accent': '#88c0d0', '--accent2': '#81a1c1',
+    '--ok': '#a3be8c', '--warn': '#ebcb8b', '--err': '#bf616a', '--live': '#d08770' } },
+  dracula: { name: 'Dracula', vars: {
+    '--bg': '#21222c', '--bg2': '#282a36', '--bg3': '#343746', '--line': '#44475a',
+    '--fg': '#f8f8f2', '--muted': '#9ca0b0', '--accent': '#bd93f9', '--accent2': '#ff79c6',
+    '--ok': '#50fa7b', '--warn': '#f1fa8c', '--err': '#ff5555', '--live': '#ff79c6' } },
+  rose: { name: 'Rosé', vars: {
+    '--bg': '#160f13', '--bg2': '#1e141a', '--bg3': '#281b22', '--line': '#46303c',
+    '--fg': '#f7e9f0', '--muted': '#c096aa', '--accent': '#fb7185', '--accent2': '#f472b6',
+    '--ok': '#3ecf8e', '--warn': '#ffb454', '--err': '#ff6b6b', '--live': '#ff4d8d' } },
+  mint: { name: 'Mint', vars: {
+    '--bg': '#0a1413', '--bg2': '#0f1c1a', '--bg3': '#142523', '--line': '#21433d',
+    '--fg': '#e3f3ef', '--muted': '#88aaa3', '--accent': '#2dd4bf', '--accent2': '#34d399',
+    '--ok': '#34d399', '--warn': '#ffcf6b', '--err': '#ff6b6b', '--live': '#ff4d6d' } },
+  mono: { name: 'Mono', vars: {
+    '--bg': '#101012', '--bg2': '#17171a', '--bg3': '#202024', '--line': '#313137',
+    '--fg': '#ededf0', '--muted': '#8b8b93', '--accent': '#d4d4dc', '--accent2': '#a0a0aa',
+    '--ok': '#8fd6a8', '--warn': '#d8c48a', '--err': '#d68a8a', '--live': '#d68aa0' } },
 }
 export const DEFAULT_ID = 'slate'
 

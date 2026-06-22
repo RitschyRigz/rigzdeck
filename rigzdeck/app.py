@@ -19,6 +19,8 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
+from . import __version__
+
 from deckcore.service import DeckCoreService
 from deckcore.api import build_streamdeck_router
 
@@ -139,7 +141,7 @@ def create_app() -> FastAPI:
             await loop.run_in_executor(None, advertiser.stop)
             await svc.stop()
 
-    app = FastAPI(title="RigzDeck", version="0.9.0", lifespan=lifespan)
+    app = FastAPI(title="RigzDeck", version=__version__, lifespan=lifespan)
     app.state.bus = bus
     app.state.svc = svc
 
@@ -164,7 +166,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"ok": True, "app": "RigzDeck", "version": "0.9.0",
+        return {"ok": True, "app": "RigzDeck", "version": __version__,
                 "buttons": len(svc.list_buttons()), "decks": len(svc.decks())}
 
     # Geteiltes Theme (Synced): der Editor schreibt es, Geräte ohne lokales Override folgen ihm.

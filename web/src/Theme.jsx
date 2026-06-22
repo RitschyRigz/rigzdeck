@@ -4,6 +4,7 @@ import {
   loadLocal, saveLocal, resolveVars, applyVars, contrastRatio,
   fetchServerTheme, pushServerThemeDebounced,
 } from './theme.js'
+import { Glyph } from '@deckcore/icons.jsx'
 
 // 🎨 Theme-Tab — RigzDeck personalisieren. Presets + Color-Picker pro Farbe + eigene
 // Themes (speichern/teilen). Der Editor ist MASTER: Änderungen wirken sofort live UND
@@ -178,12 +179,13 @@ export function Theme() {
       <h2 class="th-sec">Vorschau</h2>
       <div class="th-prev">
         <div class="th-prev-row">
-          <div class="th-prev-tile"><span class="th-pi">▶</span><span>Play</span></div>
-          <div class="th-prev-tile"><span class="th-pi">🔊</span><span>Vol</span></div>
-          <div class="th-prev-tile"><span class="th-pi">🖥</span><span>OBS</span></div>
-          <div class="th-prev-tile acc"><span class="th-pi">⏺</span><span>Live</span></div>
+          <div class="th-prev-tile"><span class="th-pi" style="color:var(--accent)"><Glyph name="play" /></span><span>Play</span></div>
+          <div class="th-prev-tile"><span class="th-pi" style="color:var(--accent)"><Glyph name="volume-2" /></span><span>Vol</span></div>
+          <div class="th-prev-tile"><span class="th-pi" style="color:var(--accent2)"><Glyph name="video" /></span><span>OBS</span></div>
+          <div class="th-prev-tile acc"><span class="th-pi" style="color:var(--live)"><Glyph name="record" /></span><span>Live</span></div>
         </div>
-        <p class="th-prev-cap muted">So sehen die Deck-Kacheln mit diesem Theme aus.</p>
+        <p class="th-prev-cap muted">Die neuen SVG-Symbole folgen der Akzentfarbe — sie passen sich jedem Theme
+          automatisch an. Symbole wählst du pro Taste im Deck-Editor („🎨 Symbol-Bibliothek").</p>
       </div>
     </div>
   )
