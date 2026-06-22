@@ -146,24 +146,34 @@ class MainActivity : AppCompatActivity() {
     private fun openSettings() =
         settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
 
-    /** Host-Leiste ein-/ausblenden. Der Griff ist sichtbar, solange die Leiste zu ist UND kein Web-Vollbild. */
+    /** Host-Leiste ein-/ausblenden. */
     private fun setBar(show: Boolean) {
         barShown = show
         tabScroll.visibility = if (show) View.VISIBLE else View.GONE
-        handle.visibility = if (show || webFs) View.GONE else View.VISIBLE
+        updateHandle()
     }
 
     /** Vom Web gemeldet (body.dc-deck-fs): im Deck-Vollbild auch den Griff der Huelle ausblenden. */
     private fun setWebFullscreen(on: Boolean) {
         webFs = on
-        if (on) setBar(false)
-        else handle.visibility = if (barShown) View.GONE else View.VISIBLE
+        if (on) setBar(false) else updateHandle()
     }
 
-    /** JS-Bruecke: das geteilte Deck (deckcore) meldet hierueber seinen Vollbild-Zustand. */
+    /** Der Griff ist nur noch ein FALLBACK: sichtbar, solange das Deck NICHT geladen ist (Wiederherstellung),
+     *  die Leiste zu ist und kein Vollbild laeuft. Sobald das Deck laeuft, uebernimmt der System-Knopf im Web
+     *  (unten links -> DeckHostNative.hosts) -> Griff aus, nur noch EIN sichtbarer Knopf. */
+    private fun updateHandle() {
+        handle.visibility = if (barShown || webFs || loaded) View.GONE else View.VISIBLE
+    }
+
+    /** JS-Bruecke: das geteilte Deck (deckcore) spricht hierueber mit der Huelle. */
     inner class DeckHostBridge {
         @JavascriptInterface
         fun fs(on: Boolean) { runOnUiThread { setWebFullscreen(on) } }
+        // Der untenliegende System-Knopf im Web oeffnet hierueber die Host-Leiste -> „Verbindungen" sitzt
+        // im selben Menue wie Neu laden/Vollbild (ein Knopf statt zwei).
+        @JavascriptInterface
+        fun hosts() { runOnUiThread { setBar(true) } }
     }
 
     private fun configureWeb() {
@@ -177,11 +187,11 @@ class MainActivity : AppCompatActivity() {
         web.addJavascriptInterface(DeckHostBridge(), "DeckHostNative")
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
-                if (url != null && url != "about:blank") { loaded = true; overlay.visibility = View.GONE }
+                if (url != null && url != "about:blank") { loaded = true; overlay.visibility = View.GONE; updateHandle() }
                 view?.evaluateJavascript(FS_OBSERVER_JS, null)   // beobachtet body.dc-deck-fs -> DeckHostNative.fs
             }
             override fun onReceivedError(view: WebView?, req: WebResourceRequest?, err: WebResourceError?) {
-                if (req?.isForMainFrame == true) { loaded = false; showStatus(getString(R.string.connect_failed)) }
+                if (req?.isForMainFrame == true) { loaded = false; showStatus(getString(R.string.connect_failed)); updateHandle() }
             }
         }
     }

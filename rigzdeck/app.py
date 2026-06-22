@@ -139,7 +139,7 @@ def create_app() -> FastAPI:
             await loop.run_in_executor(None, advertiser.stop)
             await svc.stop()
 
-    app = FastAPI(title="RigzDeck", version="0.8.6", lifespan=lifespan)
+    app = FastAPI(title="RigzDeck", version="0.9.0", lifespan=lifespan)
     app.state.bus = bus
     app.state.svc = svc
 
@@ -164,7 +164,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"ok": True, "app": "RigzDeck", "version": "0.8.6",
+        return {"ok": True, "app": "RigzDeck", "version": "0.9.0",
                 "buttons": len(svc.list_buttons()), "decks": len(svc.decks())}
 
     # Geteiltes Theme (Synced): der Editor schreibt es, Geräte ohne lokales Override folgen ihm.
