@@ -81,6 +81,13 @@ export const PRESETS = {
 }
 export const DEFAULT_ID = 'slate'
 
+// Globale „Look"-Einstellungen jenseits der Farben: Kachel-Stil-Default · Druck-Bestätigung (Modus + Farbe) ·
+// Ordner-Rahmen (an/aus + Farbe). Teil des GETEILTEN Themes (synct auf alle Geräte). Defaults = wie bisher.
+export const DEFAULT_LOOK = { tile: 'brackets', press: 'ring', pressColor: 'accent2', folder: true, folderColor: '#c8a44e' }
+const _THEME_KW = ['accent', 'accent2', 'ok', 'warn', 'err', 'live']
+// Theme-Schlüsselwort → CSS-Variable (folgt dem Theme), sonst die rohe Farbe (Hex).
+export const colorVal = (c) => _THEME_KW.indexOf(c) >= 0 ? `var(--${c})` : (c || '')
+
 const KEY = 'rd.theme'           // { override: {activeId, adhoc}|null, customs:{name:vars} }
 const VARS_KEY = 'rd.theme.vars' // flacher {var:val}-Snapshot der aktiven Vars (Pre-Paint-Script)
 
@@ -118,6 +125,20 @@ export function applyVars(vars) {
   try { localStorage.setItem(VARS_KEY, JSON.stringify(vars)) } catch (e) { /* egal */ }
 }
 
+// „Look"-Einstellungen anwenden: Kachel-Stil-Default + Druck-Modus als body-data-Attribute (deckcore/deck.css
+// liest sie generisch), Druck-/Ordner-Farben + Ordner-Rahmenbreite als CSS-Variablen. deckcore bleibt unberührt.
+export function applyLook(look) {
+  const lk = { ...DEFAULT_LOOK, ...(look || {}) }
+  try {
+    const root = document.documentElement, body = document.body
+    body.dataset.tilestyle = lk.tile || 'brackets'
+    body.dataset.press = lk.press || 'ring'
+    root.style.setProperty('--press', colorVal(lk.pressColor) || 'var(--accent2)')
+    root.style.setProperty('--folder-w', lk.folder === false ? '0' : '2px')
+    root.style.setProperty('--folder', colorVal(lk.folderColor) || '#c8a44e')
+  } catch (e) { /* headless / kein DOM */ }
+}
+
 // — Server (geteiltes Theme) —
 export async function fetchServerTheme() {
   try {
@@ -144,9 +165,12 @@ export function pushServerThemeDebounced(payload, ms = 500) {
 // sonst Default. Async — das Pre-Paint-Script hat den letzten Snapshot schon angewandt (kein Flackern).
 export async function initTheme() {
   const local = loadLocal()
-  if (local.override) { applyVars(resolveVars(local.override, local.customs)); return }
-  const srv = await fetchServerTheme()
-  applyVars(srv && srv.vars ? { ...PRESETS[DEFAULT_ID].vars, ...srv.vars } : { ...PRESETS[DEFAULT_ID].vars })
+  const srv = await fetchServerTheme()   // immer holen — auch für die globalen „Look"-Einstellungen
+  // Farben: lokales Geräte-Override gewinnt (z.B. OLED), sonst das geteilte Server-Theme, sonst Default.
+  if (local.override) applyVars(resolveVars(local.override, local.customs))
+  else applyVars(srv && srv.vars ? { ...PRESETS[DEFAULT_ID].vars, ...srv.vars } : { ...PRESETS[DEFAULT_ID].vars })
+  // Look (Kachel-Stil-Default / Druck / Ordner): global vom Server (oder Defaults).
+  applyLook(srv && srv.look)
 }
 
 // WCAG-Kontrastverhältnis zweier #rrggbb-Farben (für den Lesbarkeits-Guard). null = ungültig.
