@@ -102,8 +102,8 @@ export async function initTheme() {
   // Farben: lokales Geräte-Override gewinnt (z.B. OLED), sonst das geteilte Server-Theme, sonst Default.
   if (local.override) applyVars(resolveVars(local.override, local.customs))
   else applyVars(srv && srv.vars ? { ...PRESETS[DEFAULT_ID].vars, ...srv.vars } : { ...PRESETS[DEFAULT_ID].vars })
-  // Look (Kachel-Stil-Default / Druck / Ordner): global vom Server (oder Defaults).
-  applyLook(srv && srv.look)
+  // Der globale „Look" (Kachel-Stil-Default / Druck / Ordner) lebt jetzt GENERISCH in deckcore (registry.look)
+  // und wird vom geteilten Frontend (applyDeckLook) angewandt → hier NICHT mehr (sonst Doppel-Anwendung).
 }
 
 // WCAG-Kontrastverhältnis zweier #rrggbb-Farben (für den Lesbarkeits-Guard). null = ungültig.

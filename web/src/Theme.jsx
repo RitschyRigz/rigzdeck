@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'preact/hooks'
 import {
-  CORE_VARS, SEMANTIC_VARS, PRESETS, DEFAULT_ID, DEFAULT_LOOK,
-  loadLocal, saveLocal, resolveVars, applyVars, applyLook, contrastRatio,
+  CORE_VARS, SEMANTIC_VARS, PRESETS, DEFAULT_ID,
+  loadLocal, saveLocal, resolveVars, applyVars, contrastRatio,
   fetchServerTheme, pushServerThemeDebounced,
 } from './theme.js'
 import { Glyph } from '@deckcore/icons.jsx'
-import { TILE_SKINS, PRESS_MODES, THEME_COLORS } from '@deckcore/deckstyle.js'
+import { TILE_SKINS, PRESS_MODES, THEME_COLORS, applyDeckLook, LOOK_DEFAULT } from '@deckcore/deckstyle.js'
 
 // 🎨 Theme-Tab — RigzDeck personalisieren. Theme (Presets/eigene Farben) + globaler Kachel-Stil +
 // Druck-Bestätigung + Ordner-Rahmen + Speichern/Teilen. Der Editor ist MASTER: Änderungen wirken sofort
@@ -47,14 +47,19 @@ export function Theme() {
   const initCustoms = loadLocal().customs
   const [st, setSt] = useState({ activeId: DEFAULT_ID, adhoc: null, customs: initCustoms })
   const [vars, setVars] = useState(() => resolveVars({ activeId: DEFAULT_ID, adhoc: null }, initCustoms))
-  const [look, setLook] = useState(DEFAULT_LOOK)
+  const [look, setLook] = useState(LOOK_DEFAULT)
   const [adv, setAdv] = useState(false)
   const [name, setName] = useState('')
   const [msg, setMsg] = useState('')
   const [decks, setDecks] = useState([])   // für die Deck-Theme-Overrides (nur Top-Level, keine Ordner)
 
+  // Registry liefert die Decks (für Deck-Themes) UND den globalen Look (Kachel-Stil/Druck/Ordner) — der lebt
+  // jetzt generisch in deckcore (nicht mehr im Hüllen-Theme). Hier nur spiegeln + live anwenden.
   const refreshDecks = () => fetch('/api/streamdeck/registry').then((r) => r.json())
-    .then((d) => setDecks((d.decks || []).filter((x) => !x.folder && !x.auto))).catch(() => {})
+    .then((d) => {
+      setDecks((d.decks || []).filter((x) => !x.folder && !x.auto))
+      const nl = { ...LOOK_DEFAULT, ...(d.look || {}) }; setLook(nl); applyDeckLook(nl)
+    }).catch(() => {})
   useEffect(() => { refreshDecks() }, [])
 
   // Beim Öffnen das aktuell geteilte (Server-)Theme + Look laden, damit der Editor den echten Stand zeigt.
@@ -67,24 +72,24 @@ export function Theme() {
         setSt((s) => ({ ...s, activeId: srv.activeId || '__adhoc', adhoc: srv.adhoc || null }))
         setVars(nv); applyVars(nv)
       }
-      const nl = { ...DEFAULT_LOOK, ...(srv.look || {}) }
-      setLook(nl); applyLook(nl)
     })
     return () => { alive = false }
   }, [])
 
-  // Server-Push (debounced) — IMMER mit dem vollen Stand (Farben + Look), damit nichts verloren geht.
-  function push(st2, vars2, look2) {
-    pushServerThemeDebounced({ activeId: st2.activeId, adhoc: st2.adhoc, vars: vars2, look: look2 })
+  // Farb-Theme → Server (debounced, theme.json). Der globale LOOK lebt getrennt in deckcore (siehe editLook).
+  function push(st2, vars2) {
+    pushServerThemeDebounced({ activeId: st2.activeId, adhoc: st2.adhoc, vars: vars2 })
   }
   function commit(nextSt, nextVars) {
     setSt(nextSt); setVars(nextVars); applyVars(nextVars)
     saveLocal({ override: loadLocal().override, customs: nextSt.customs })
-    push(nextSt, nextVars, look)
+    push(nextSt, nextVars)
   }
+  // Globaler Look → generische deckcore-Einstellung (/api/streamdeck/look), NICHT mehr ins Hüllen-Theme.
   function editLook(patch) {
     const nl = { ...look, ...patch }
-    setLook(nl); applyLook(nl); push(st, vars, nl)
+    setLook(nl); applyDeckLook(nl)
+    fetch('/api/streamdeck/look', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) }).catch(() => {})
   }
   function applyPreset(id) {
     setMsg(''); commit({ ...st, activeId: id, adhoc: null }, { ...PRESETS[DEFAULT_ID].vars, ...PRESETS[id].vars })
@@ -156,7 +161,8 @@ export function Theme() {
         const obj = JSON.parse(reader.result)
         const v = obj && obj.vars ? obj.vars : obj
         const nv = { ...PRESETS[DEFAULT_ID].vars, ...v }
-        if (obj && obj.look) { const nl = { ...DEFAULT_LOOK, ...obj.look }; setLook(nl); applyLook(nl) }
+        if (obj && obj.look) { const nl = { ...LOOK_DEFAULT, ...obj.look }; setLook(nl); applyDeckLook(nl)
+          fetch('/api/streamdeck/look', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj.look) }).catch(() => {}) }
         commit({ ...st, activeId: '__adhoc', adhoc: { ...nv } }, nv)
         setMsg('Importiert' + (obj && obj.name ? ': ' + obj.name : '') + ' — zum Behalten unten benennen + speichern.')
       } catch (err) { setMsg('Import fehlgeschlagen (kein gültiges Theme-JSON).') }
