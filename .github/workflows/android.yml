@@ -1,7 +1,9 @@
 name: RigzDeck APK
 
-# Baut die Android-App (WebView-Panel) in der Cloud und legt die fertige APK als Artefakt ab.
-# Laeuft bei Aenderungen unter android/ oder von Hand ("Run workflow"). Kein lokales SDK noetig.
+# Baut die Android-App (WebView-Panel) in der Cloud. Kein lokales SDK noetig.
+# - Bei Aenderungen unter android/ oder manuell ("Run workflow"): APK als Artefakt (Download im Actions-Tab).
+# - Bei einem VEROEFFENTLICHTEN GitHub-Release: die signierte APK wird automatisch ans Release gehaengt
+#   (liegt dann dauerhaft neben der .exe auf der Releases-Seite, fuer Tablet-Installs).
 
 on:
   push:
@@ -9,9 +11,11 @@ on:
       - 'android/**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
-  contents: read
+  contents: write   # noetig, um die APK als Release-Datei hochzuladen
 
 jobs:
   build:
@@ -57,9 +61,20 @@ jobs:
       - name: APK umbenennen
         run: cp android/app/build/outputs/apk/debug/app-debug.apk rigzdeck.apk
 
-      - name: APK hochladen
+      - name: APK hochladen (Artefakt)
         uses: actions/upload-artifact@v4
         with:
           name: rigzdeck-apk
           path: rigzdeck.apk
           if-no-files-found: error
+
+      - name: APK ans Release haengen (nur bei Release)
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VER="${TAG#v}"                       # v0.12.3 -> 0.12.3 (passend zur .exe-Benennung)
+          cp rigzdeck.apk "RigzDeck-${VER}.apk"
+          gh release upload "$TAG" "RigzDeck-${VER}.apk" --clobber
+          echo "APK 'RigzDeck-${VER}.apk' an Release $TAG gehaengt."
