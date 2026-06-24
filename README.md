@@ -15,7 +15,7 @@ renderer wrapped in a minimal FastAPI app.
 
 - **Decks** — independent view templates (own grid / categories / style), share a button pool.
 - **WYSIWYG editor** — drag buttons into a live grid; free placement, per-button image + title
-  overlay, widget tiles (clock / text / graph), resizable tiles, folders & radial menus.
+  overlay, widget tiles (clock / text / graph / gauge / bar), resizable tiles, folders & radial menus.
 - **One-click presets** — pick an action type and the matching status monitor, on/off logic and a
   fitting symbol fill in automatically (fully editable). The smallest button in seconds, not minutes.
 - **Generic capabilities** — `launch` (any .exe/.py/.lnk, native file picker + icon extraction),
@@ -24,7 +24,9 @@ renderer wrapped in a minimal FastAPI app.
 - **Audio (Wave Link + Windows)** — one click syncs the running Wave Link app into a fader deck
   (per-mix/channel level + mute, live VU); switch the Windows default output device from a button,
   with optional “Wave Link follows Windows default” coupling — all built right in the editor.
-- **Sensors** — HWiNFO sensors + PresentMon FPS / frametime as value or live-graph tiles.
+- **Sensors & dashboards** — HWiNFO sensors + PresentMon FPS / frametime as gauge / bar / graph / value
+  tiles, plus a **one-click HWiNFO dashboard** (overview deck + per-category folders — CPU / GPU / mainboard /
+  power / fans / liquid-cooling / storage / network), hardware-agnostic and fully editable.
 - **Status monitors** — poll / file / flag / OBS scene / DisplayFusion profile / default-device …
 - **Modern deck design** — sleek flat tiles with accent glow + corner brackets, redesigned faders with
   gradient fill, peak-hold VU meters and image-or-emoji symbols; the editor preview is true WYSIWYG.
