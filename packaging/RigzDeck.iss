@@ -2,7 +2,7 @@
 ; Vorher:  .\packaging\build.ps1   (erzeugt dist\RigzDeck\)
 ; Bauen:   ISCC.exe packaging\RigzDeck.iss   (Inno Setup Compiler)
 #define AppName "RigzDeck"
-#define AppVersion "0.15.0"
+#define AppVersion "0.15.1"
 #define AppPublisher "RitschyRigz"
 #define AppExe "RigzDeck.exe"
 
