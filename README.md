@@ -24,9 +24,10 @@ renderer wrapped in a minimal FastAPI app.
 - **Audio (Wave Link + Windows)** — one click syncs the running Wave Link app into a fader deck
   (per-mix/channel level + mute, live VU); switch the Windows default output device from a button,
   with optional “Wave Link follows Windows default” coupling — all built right in the editor.
-- **Sensors & dashboards** — HWiNFO sensors + PresentMon FPS / frametime as gauge / bar / graph / value
-  tiles, plus a **one-click HWiNFO dashboard** (overview deck + per-category folders — CPU / GPU / mainboard /
-  power / fans / liquid-cooling / storage / network), hardware-agnostic and fully editable.
+- **Sensors & dashboards** — HWiNFO sensors + PresentMon FPS / frametime as graph / gauge / bar / value
+  tiles that follow the theme (frames, glows, backgrounds — global or per-tile), plus a **one-click HWiNFO
+  dashboard** (overview deck + per-category folders — CPU / GPU / mainboard / power / fans / liquid-cooling /
+  storage / network), graph-first by default, hardware-agnostic and fully editable.
 - **Status monitors** — poll / file / flag / OBS scene / DisplayFusion profile / default-device …
 - **Modern deck design** — sleek flat tiles with accent glow + corner brackets, redesigned faders with
   gradient fill, peak-hold VU meters and image-or-emoji symbols; the editor preview is true WYSIWYG.
