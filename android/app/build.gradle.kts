@@ -17,8 +17,8 @@ android {
         applicationId = "com.rigzdeck"
         minSdk = 26
         targetSdk = 34
-        versionCode = 31
-        versionName = "0.15.4"
+        versionCode = 32
+        versionName = "0.15.5"
     }
 
     signingConfigs {
