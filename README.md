@@ -20,7 +20,10 @@ renderer wrapped in a minimal FastAPI app.
   fitting symbol fill in automatically (fully editable). The smallest button in seconds, not minutes.
 - **Generic capabilities** — `launch` (any .exe/.py/.lnk, native file picker + icon extraction),
   `obs` (scene / source toggle / stream / record), `displayfusion` (load monitor profiles),
-  `media` (play/pause · ⏭⏮ · volume · mute), `hotkey` (send any key combo), `http`, `flag`.
+  `media` (play/pause · ⏭⏮ · volume · mute), `http`, `flag`.
+- **Macros & hotkeys** — click-to-record a key combo (no typing), chain multiple steps into a macro,
+  sent system-wide so global hotkeys fire even in the background (OBS, games …). Optional **hardware-driver
+  send** for apps that reject OS-injected keys (e.g. TikTok Live Studio) — see the driver note below.
 - **Audio (Wave Link + Windows)** — one click syncs the running Wave Link app into a fader deck
   (per-mix/channel level + mute, live VU); switch the Windows default output device from a button,
   with optional “Wave Link follows Windows default” coupling — all built right in the editor.
@@ -32,6 +35,24 @@ renderer wrapped in a minimal FastAPI app.
 - **Modern deck design** — sleek flat tiles with accent glow + corner brackets, redesigned faders with
   gradient fill, peak-hold VU meters and image-or-emoji symbols; the editor preview is true WYSIWYG.
 - **Touch panel** over LAN for tablets (deck fullscreen, offline screen, version badge) + the Elgato Stream Deck plugin.
+
+### Hardware-driver macros (optional — only for apps that reject simulated keys)
+
+Most apps react to RigzDeck's normal system-wide macros. A few — notably **TikTok Live Studio** — discard
+**any** OS-injected keystroke (`SendInput`/`keybd_event`), so software macros can't drive them (this also
+affects a real Elgato Stream Deck). For those, switch a macro to **🛡 hardware-driver send** in the editor
+(`send via → hardware driver`). This routes the keystrokes through the **[Interception](https://github.com/oblitum/Interception)**
+kernel driver so they look like a physical keyboard.
+
+One-time setup on the machine that runs RigzDeck:
+
+1. Install the Interception driver: `install-interception.exe /install` (elevated), then **reboot**.
+2. In the **Macro / Hotkey** category, point RigzDeck at `interception.dll` (the `library/x64/interception.dll`
+   from the Interception download — auto-found if it sits in your Downloads) and click **calibrate keyboard**
+   once (press a key on the keyboard you want the macros to come from).
+
+The DLL is **not** bundled (RigzDeck stays self-contained / clean); without it, hardware-driver send simply
+reports “driver not ready” and normal macros keep working.
 
 ## Run (dev)
 
