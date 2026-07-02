@@ -22,3 +22,7 @@ dist/
 # Android-Signier-Keystore (kommt via CI-Secret ANDROID_KEYSTORE_B64, NIE committen)
 *.keystore
 *.jks
+
+# Lokale APK-Ablagen (Build-/Download-Artefakte; APKs haengen via CI am Release)
+apk/
+apk_new/

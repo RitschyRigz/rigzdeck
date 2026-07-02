@@ -11,7 +11,7 @@ RigzDeck is a slim host around the shared **[deckcore](https://github.com/Ritsch
 engine (included here as a git submodule) — a battle-tested deck editor, deck model, and
 renderer wrapped in a minimal FastAPI app.
 
-## Features (v0.7.2)
+## Features (v0.16.0)
 
 - **Decks** — independent view templates (own grid / categories / style), share a button pool.
 - **WYSIWYG editor** — drag buttons into a live grid; free placement, per-button image + title
@@ -24,6 +24,10 @@ renderer wrapped in a minimal FastAPI app.
 - **Macros & hotkeys** — click-to-record a key combo (no typing), chain multiple steps into a macro,
   sent system-wide so global hotkeys fire even in the background (OBS, games …). Optional **hardware-driver
   send** for apps that reject OS-injected keys (e.g. TikTok Live Studio) — see the driver note below.
+- **Media player window (`play_media`)** — play videos in a persistent, borderless [mpv](https://mpv.io)
+  window (great as an OBS / TikTok Live Studio window source): in-place restart without flicker, live
+  picture EQ (brightness/contrast/gamma/saturation — HDR-capture friendly), optional close-on-end.
+  Needs mpv on the machine — see the note below.
 - **Audio (Wave Link + Windows)** — one click syncs the running Wave Link app into a fader deck
   (per-mix/channel level + mute, live VU); switch the Windows default output device from a button,
   with optional “Wave Link follows Windows default” coupling — all built right in the editor.
@@ -53,6 +57,13 @@ One-time setup on the machine that runs RigzDeck:
 
 The DLL is **not** bundled (RigzDeck stays self-contained / clean); without it, hardware-driver send simply
 reports “driver not ready” and normal macros keep working.
+
+### Video playback (`play_media`) needs mpv (optional)
+
+The `play_media` action drives an external [mpv](https://mpv.io) player window. mpv is **not** bundled —
+RigzDeck resolves it from the configured player path, your `PATH`, or common install locations
+(`winget install mpv` is enough). Without mpv the action simply reports that mpv is missing and
+everything else keeps working.
 
 ## Run (dev)
 
