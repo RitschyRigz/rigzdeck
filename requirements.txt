@@ -7,3 +7,4 @@ websocket-client>=1.7
 pycaw>=20240210; sys_platform == "win32"
 comtypes>=1.2; sys_platform == "win32"      # winaudio + OBSBOT-UVC COM (auch via pycaw, hier explizit)
 pygrabber>=0.2; sys_platform == "win32"     # OBSBOT-Kamera via rohes UVC (DirectShow-Enumeration)
+pyserial>=3.5                               # Arduino-HID-Bridge (send_via=arduino): serieller Port zum HID-Chip

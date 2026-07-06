@@ -13,8 +13,10 @@ hiddenimports = (
     + collect_submodules("comtypes")       # winaudio + OBSBOT-UVC: COM via comtypes (lazy → sonst nicht erfasst)
     + collect_submodules("pycaw")          # winaudio: Windows-Core-Audio-Geräte (lazy)
     + collect_submodules("pygrabber")      # OBSBOT-UVC: DirectShow-Geräte-Enumeration (lazy → sonst nicht erfasst)
+    + collect_submodules("serial")         # pyserial: Arduino-HID-Bridge (lazy importiert → sonst nicht erfasst)
     + ["rigzdeck.app", "rigzdeck.discovery", "deckcore.service", "deckcore.api", "deckcore.obs",
        "deckcore.wavelink", "deckcore.winaudio", "deckcore.winaudio_helper", "deckcore.obsbot_uvc",
+       "deckcore.arduino_kb", "serial.tools.list_ports",
        "pystray._win32", "PIL", "ifaddr"]
 )
 
