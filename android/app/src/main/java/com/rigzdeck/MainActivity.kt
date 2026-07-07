@@ -1,9 +1,14 @@
 package com.rigzdeck
 
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.View
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
@@ -174,6 +179,28 @@ class MainActivity : AppCompatActivity() {
         // im selben Menue wie Neu laden/Vollbild (ein Knopf statt zwei).
         @JavascriptInterface
         fun hosts() { runOnUiThread { setBar(true) } }
+        // Haptik: das geteilte Deck (deckcore buzz()) ruft dies beim bestaetigten Tastendruck. Android-WebView
+        // leitet navigator.vibrate NICHT an den Motor weiter -> hier ueber den echten System-Vibrator (braucht
+        // die VIBRATE-Permission). Dauer in ms, defensiv geklemmt; alle API-Level abgedeckt.
+        @JavascriptInterface
+        fun vibrate(ms: Int) {
+            val dur = ms.toLong().coerceIn(1L, 200L)
+            try {
+                val vib: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                }
+                if (vib == null || !vib.hasVibrator()) return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vib.vibrate(VibrationEffect.createOneShot(dur, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vib.vibrate(dur)
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     private fun configureWeb() {
