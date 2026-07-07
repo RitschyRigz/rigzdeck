@@ -11,11 +11,30 @@ import org.json.JSONObject
  */
 class Settings(context: Context) {
 
-    private val p = context.applicationContext.getSharedPreferences("rigzdeck", Context.MODE_PRIVATE)
+    private val ctx = context.applicationContext
+    private val p = ctx.getSharedPreferences("rigzdeck", Context.MODE_PRIVATE)
+
+    init { seedDefaultsIfNeeded() }
 
     companion object {
         const val DEFAULT_PORT = 7990
         const val DEFAULT_PATH = "/panel"
+    }
+
+    /** Beim ALLERERSTEN Start (Prefs noch nie geschrieben) optionale, MITGELIEFERTE Standard-Hosts aus
+     *  assets/default_hosts.json in die manuelle Liste uebernehmen. Das Asset ist im oeffentlichen Build
+     *  NICHT vorhanden (gitignored) -> No-op/generisch; ein privater CI-Build (workflow_dispatch mit
+     *  bake_hosts) brennt es aus einem Secret ein. Format = wie die gespeicherte manual-Liste
+     *  ([{label,host,port,path}]). Der Nutzer kann die Eintraege danach normal bearbeiten/loeschen (sie
+     *  liegen dann in den Prefs). Greift nur solange 'manual' fehlt -> nach 'Daten loeschen' erneut. */
+    private fun seedDefaultsIfNeeded() {
+        if (p.contains("manual")) return   // schon initialisiert (auch leere Liste) -> nie ueberschreiben
+        try {
+            val txt = ctx.assets.open("default_hosts.json").bufferedReader().use { it.readText() }.trim()
+            if (txt.isBlank() || txt == "[]") return
+            JSONArray(txt)                  // validieren (wirft bei Muell -> nichts seeden)
+            p.edit().putString("manual", txt).apply()
+        } catch (e: Exception) { /* kein Asset / kaputt -> generisch, nichts seeden */ }
     }
 
     var autoDiscover: Boolean

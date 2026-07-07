@@ -9,3 +9,5 @@ captures/
 .cxx/
 *.apk
 *.keystore
+# Private, eingebrannte Standard-Hosts (nur im lokalen/CI-Personal-Build aus Secret) - NIE ins Repo/Release:
+app/src/main/assets/default_hosts.json

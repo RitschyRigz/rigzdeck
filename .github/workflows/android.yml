@@ -11,6 +11,11 @@ on:
       - 'android/**'
       - '.github/workflows/android.yml'
   workflow_dispatch:
+    inputs:
+      bake_hosts:
+        description: 'Persoenliche Standard-Hosts aus Secret PERSONAL_HOSTS_JSON einbrennen (nur fuer Taildrop, NIE ins Release/Repo)'
+        type: boolean
+        default: false
   release:
     types: [published]
 
@@ -34,6 +39,16 @@ jobs:
           else
             echo "Kein ANDROID_KEYSTORE_B64-Secret -> Standard-Debug-Key (instabil)."
           fi
+
+      - name: Persoenliche Hosts einbrennen (nur manueller Build + Secret; nie ins Release/Repo)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bake_hosts == 'true' }}
+        env:
+          HOSTS: ${{ secrets.PERSONAL_HOSTS_JSON }}
+        run: |
+          if [ -z "$HOSTS" ]; then echo "Kein PERSONAL_HOSTS_JSON-Secret -> nichts eingebrannt."; exit 0; fi
+          mkdir -p android/app/src/main/assets
+          printf '%s' "$HOSTS" > android/app/src/main/assets/default_hosts.json
+          echo "default_hosts.json eingebrannt ($(wc -c < android/app/src/main/assets/default_hosts.json) Bytes) -> seedet beim ersten Start."
 
       - name: JDK 17
         uses: actions/setup-java@v4
