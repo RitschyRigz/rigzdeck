@@ -3,6 +3,9 @@
    (.sd-* / .t-deck* / .t-key*) kommen aus deckcore/web/deck.css. */
 
 :root {
+  /* Seite als eigenständig dunkel deklarieren → Android-WebView/Fully-Force-Dark
+     darf sie NICHT nochmal algorithmisch abdunkeln/invertieren (Fader/VU/weisse Striche). */
+  color-scheme: dark;
   --bg: #15171c; --bg2: #1c1f26; --bg3: #232733; --line: #2e3340;
   --fg: #e7e9ee; --muted: #8b93a4; --accent: #8a5cff; --accent2: #4ea1ff;
   --ok: #3ecf8e; --warn: #ffb454; --err: #ff6b6b; --live: #ff4d6d;
