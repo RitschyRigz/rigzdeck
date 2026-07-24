@@ -8,7 +8,9 @@ icons. No heavy backend — only the generic deck capabilities the core ships
 from __future__ import annotations
 
 import asyncio
+import itertools
 import json
+import logging
 import os
 import sys
 from contextlib import asynccontextmanager
@@ -73,6 +75,22 @@ def _load_obs_config() -> dict:
     return cfg
 
 
+log = logging.getLogger("rigzdeck")
+
+# A blocked client write (dead/half-open socket) longer than this = the connection is dead:
+# sse_starlette aborts the stuck send (move_on_after), calls aclose() on the generator → its
+# finally runs unsubscribe. Generous > any legit client hiccup (panel watchdog = 40s), << hangs.
+SSE_SEND_TIMEOUT_SEC = 30.0
+_sse_conn_ids = itertools.count(1)   # running connection id for SSE diagnostics
+
+
+def _peer(request: Request) -> str:
+    try:
+        return request.client.host if request.client else "?"
+    except Exception:  # noqa: BLE001
+        return "?"
+
+
 async def _one(topic, q):
     return topic, await q.get()
 
@@ -81,7 +99,9 @@ async def _sse_gen(request: Request, bus: EventBus, topics: list, initial: list)
     """Multiplexed SSE: one connection carries all requested topics. Yields the initial
     snapshot, then live payloads. (RigzDeck's deck needs only ~2 topics — one connection is
     plenty; the WebSocket transport is a planned next step to drop SSE entirely.)"""
-    queues = [(t, bus.subscribe(t)) for t in topics]
+    client = f"{_peer(request)}#{next(_sse_conn_ids)}"
+    queues = [(t, bus.subscribe(t, client=client)) for t in topics]
+    log.info("SSE connect client=%s topics=%d", client, len(queues))
     try:
         for t, payload in initial:
             yield {"event": t, "data": json.dumps(payload)}
@@ -105,8 +125,11 @@ async def _sse_gen(request: Request, bus: EventBus, topics: list, initial: list)
                 except Exception:  # noqa: BLE001
                     pass
     finally:
+        dropped = sum(getattr(q, "dropped", 0) for _, q in queues)
         for t, q in queues:
             bus.unsubscribe(t, q)
+        lvl = log.warning if dropped else log.info
+        lvl("SSE disconnect client=%s topics=%d dropped_total=%d", client, len(queues), dropped)
 
 
 def create_app() -> FastAPI:
@@ -146,7 +169,10 @@ def create_app() -> FastAPI:
     app.state.svc = svc
 
     def sse_response(request: Request, topics: list, initial: list):
-        return EventSourceResponse(_sse_gen(request, bus, topics, initial), ping=15)
+        # send_timeout: a blocked client write is aborted → generator aclose() → finally →
+        # unsubscribe (guaranteed dead-subscriber cleanup). ping=15 keeps the JS watchdog fed.
+        return EventSourceResponse(_sse_gen(request, bus, topics, initial),
+                                   ping=15, send_timeout=SSE_SEND_TIMEOUT_SEC)
 
     # Shared deck API (registry/resolved/stream/press/buttons/decks + per-deck CRUD/displayfusion/icons)
     app.include_router(build_streamdeck_router(
@@ -162,7 +188,7 @@ def create_app() -> FastAPI:
             initial.append(("streamdeck:buttons", svc.resolved()))
         if "streamdeck:layout" in topics:
             initial.append(("streamdeck:layout", {"decks": svc.decks()}))
-        return EventSourceResponse(_sse_gen(request, bus, topics, initial), ping=15)
+        return sse_response(request, topics, initial)
 
     @app.get("/health")
     def health():
