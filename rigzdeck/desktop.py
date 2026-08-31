@@ -18,7 +18,7 @@ from pathlib import Path
 
 import uvicorn
 
-from .app import create_app, PORT
+from .app import create_app, port_bind_conflict, PORT
 
 
 def _lan_ip() -> str:
@@ -216,6 +216,17 @@ def main() -> None:
     if _already_running():
         if "--autostart" not in sys.argv:
             _open_window(f"http://127.0.0.1:{PORT}/")
+        return
+
+    # Startup-Guard: Port belegt, obwohl niemand darauf ANTWORTET (sonst hätte
+    # _already_running() gegriffen) → ein Rest-/Zombie-Prozess hält 7990 noch. Ohne den Guard
+    # fährt uvicorn erst die komplette Lifespan hoch (Service, mDNS, Verbindungen) und
+    # scheitert DANN am Bind → [WinError 10048]-Traceback + mDNS-Spam im Log und ein Tray
+    # ohne Server. Stattdessen: EINE klare Zeile + sauberer Abbruch.
+    if port_bind_conflict(PORT):
+        print(f"RigzDeck: Port {PORT} ist belegt, antwortet aber nicht — vermutlich hält ein "
+              "Rest-Prozess den Port noch. Diese Instanz beendet sich; später erneut starten.",
+              file=sys.stderr)
         return
 
     # Autostart: warten, bis Netzwerk + Wave Link / OBS / Audio oben sind, BEVOR der Server + die

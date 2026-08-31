@@ -6,6 +6,10 @@ Belegt am echten Code des RigzDeck-Standalone-Hosts:
   * VOLLSTÄNDIGER PFAD: ein toter Client (blockierter Write) wird über den
     EventSourceResponse-send_timeout beendet → sse_starlette ruft aclose() auf dem echten
     rigzdeck.app._sse_gen → dessen finally räumt die Subscription GARANTIERT auf.
+  * TEARDOWN: ein Abbruch des Generators mitten im asyncio.wait (Client-Disconnect/Cancel)
+    lässt KEINE _one()-Reader-Tasks unreferenziert pending zurück („Task was destroyed but
+    it is pending!"-Spam).
+  * STARTUP-GUARD: port_bind_conflict erkennt einen belegten Port VOR dem uvicorn-Start.
 
 Reine asyncio-Tests via asyncio.run() (kein pytest-asyncio nötig).
 """
@@ -171,3 +175,64 @@ async def _dead_client_scenario():
 
 def test_full_path_dead_client_is_cleaned_up_via_send_timeout():
     asyncio.run(_dead_client_scenario())
+
+
+# ── Generator-Abbruch mitten im asyncio.wait → keine verwaisten Reader-Tasks ─────────────
+
+async def _cancel_mid_wait_scenario():
+    import rigzdeck.app as ra
+
+    bus = EventBus()
+    topic = "streamdeck:buttons"
+    gen = ra._sse_gen(_FakeRequest(), bus, [topic], [])
+
+    async def _drive():
+        async for _ in gen:      # erster __anext__ → subscribe + rein ins asyncio.wait
+            pass
+
+    drive = asyncio.create_task(_drive())
+    for _ in range(200):
+        if bus.subscriber_count(topic) == 1:
+            break
+        await asyncio.sleep(0.01)
+    assert bus.subscriber_count(topic) == 1, "Subscription sollte nach subscribe existieren"
+
+    await asyncio.sleep(0.05)    # sicher IM asyncio.wait (idle, kein Publish)
+    drive.cancel()               # der reale Pfad: uvicorn cancelt den Response-Task
+    try:
+        await drive
+    except asyncio.CancelledError:
+        pass
+
+    assert bus.subscriber_count(topic) == 0, "finally muss die Subscription aufräumen"
+
+    # Den Reader-Tasks ein paar Loop-Zyklen geben, ihre Cancellation zu verarbeiten — danach
+    # darf KEIN Task mehr pending sein. (asyncio.wait lässt seine Kinder beim Abbruch
+    # dokumentiert weiterlaufen; ohne Cancel im finally hängen sie unreferenziert an ihrer
+    # Queue → GC → „Task was destroyed but it is pending!".)
+    for _ in range(5):
+        await asyncio.sleep(0)
+    leftovers = [t for t in asyncio.all_tasks()
+                 if t is not asyncio.current_task() and not t.done()]
+    assert leftovers == [], f"verwaiste pending Reader-Tasks: {leftovers}"
+
+
+def test_generator_cancel_mid_wait_leaves_no_pending_reader_tasks():
+    asyncio.run(_cancel_mid_wait_scenario())
+
+
+# ── Startup-Guard: Port-Bind-Konflikt erkennen, BEVOR uvicorn die Lifespan hochfährt ─────
+
+def test_port_bind_conflict_detects_taken_and_free_port():
+    import socket
+
+    import rigzdeck.app as ra
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(("0.0.0.0", 0))
+        port = s.getsockname()[1]
+        assert ra.port_bind_conflict(port) is True    # belegt → Konflikt erkannt
+    finally:
+        s.close()
+    assert ra.port_bind_conflict(port) is False       # wieder frei → kein Konflikt

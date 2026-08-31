@@ -12,6 +12,7 @@ import itertools
 import json
 import logging
 import os
+import socket
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -48,6 +49,26 @@ _FLAGS = _RUNTIME / "flags"                           # flag-capability dir
 _STATIC = _DATA / "static"                            # uploaded/extracted icons (/static/sd_icons/user)
 
 PORT = 7990
+
+
+def port_bind_conflict(port: int = PORT) -> bool:
+    """True, wenn 0.0.0.0:<port> nicht bindbar ist (eine laufende Instanz oder ein
+    Rest-Prozess hält den Port). Als Startup-Guard VOR uvicorn gedacht: uvicorn fährt erst
+    die komplette Lifespan hoch (Service, mDNS, Verbindungen) und bindet DANACH — ein
+    Bind-Konflikt endet sonst als [WinError 10048]-Traceback + mDNS-Spam im Log statt als
+    eine klare Zeile. (Probe-Socket, sofort wieder geschlossen — unverbundene Sockets haben
+    kein TIME_WAIT, der Port ist danach direkt wieder bindbar.)"""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(("0.0.0.0", int(port)))
+        return False
+    except OSError:
+        return True
+    finally:
+        try:
+            s.close()
+        except OSError:
+            pass
 
 
 def _load_obs_config() -> dict:
@@ -92,7 +113,7 @@ def _peer(request: Request) -> str:
 
 
 async def _one(topic, q):
-    return topic, await q.get()
+    return topic, q, await q.get()
 
 
 async def _sse_gen(request: Request, bus: EventBus, topics: list, initial: list):
@@ -102,16 +123,22 @@ async def _sse_gen(request: Request, bus: EventBus, topics: list, initial: list)
     client = f"{_peer(request)}#{next(_sse_conn_ids)}"
     queues = [(t, bus.subscribe(t, client=client)) for t in topics]
     log.info("SSE connect client=%s topics=%d", client, len(queues))
+    # EIN langlebiger Reader-Task je Queue, nach jedem gelieferten Payload neu aufgelegt —
+    # NICHT pro Schleifendurchlauf alle Tasks frisch erzeugen und die pending canceln: bricht
+    # der Generator mitten im asyncio.wait ab (Client-Disconnect → uvicorn cancelt den
+    # Response-Task, oder aclose via send_timeout), lässt asyncio.wait seine Kinder
+    # dokumentiert weiterlaufen — sie hingen dann unreferenziert an ihrer Queue und wurden vom
+    # GC als „Task was destroyed but it is pending!" entsorgt (Log-Spam). Das finally cancelt
+    # die Reader jetzt auf JEDEM Exit-Pfad; nebenbei entfällt das Task-Churn pro Event.
+    pending = {asyncio.create_task(_one(t, q)) for t, q in queues}
     try:
         for t, payload in initial:
             yield {"event": t, "data": json.dumps(payload)}
         while True:
             if await request.is_disconnected():
                 break
-            tasks = [asyncio.create_task(_one(t, q)) for t, q in queues]
-            done, pending = await asyncio.wait(tasks, timeout=10, return_when=asyncio.FIRST_COMPLETED)
-            for p in pending:
-                p.cancel()
+            done, pending = await asyncio.wait(pending, timeout=10,
+                                               return_when=asyncio.FIRST_COMPLETED)
             if not done:
                 # Named heartbeat so the client watchdog (web/sse.js) sees a sign of life and does
                 # NOT falsely reconnect an idle panel. (The ping= on EventSourceResponse is only a
@@ -120,11 +147,14 @@ async def _sse_gen(request: Request, bus: EventBus, topics: list, initial: list)
                 continue
             for d in done:
                 try:
-                    t, payload = d.result()
-                    yield {"event": t, "data": json.dumps(payload)}
-                except Exception:  # noqa: BLE001
-                    pass
+                    t, q, payload = d.result()
+                except Exception:  # noqa: BLE001 — defensiv; Queue.get() wirft praktisch nie
+                    continue
+                yield {"event": t, "data": json.dumps(payload)}
+                pending.add(asyncio.create_task(_one(t, q)))
     finally:
+        for p in pending:
+            p.cancel()
         dropped = sum(getattr(q, "dropped", 0) for _, q in queues)
         for t, q in queues:
             bus.unsubscribe(t, q)
